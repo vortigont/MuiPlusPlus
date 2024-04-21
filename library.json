@@ -1,0 +1,33 @@
+{
+    "name": "MuiPlusPlus",
+    "description": "OnScreen Menu UI controls library for 32 bit MCUs",
+    "frameworks": "arduino",
+    "url": "https://github.com/vortigont/MuiPlusPlus",
+    "version": "0.0.1",
+    "keywords": "OSD, menu, UI",
+    "authors": [
+        {
+            "name": "Emil Muratov",
+            "url": "https://github.com/vortigont",
+            "email": "gpm@hotplug.ru",
+            "maintainer": true
+        }
+    ],
+    "license": "LGPL-2.1-or-later",
+    "repository": {
+        "type": "git",
+         "url": "https://github.com/vortigont/MuiPlusPlus.git"
+    },
+    "export": {
+        "include":
+        [
+            "examples/*",
+            "src/*",
+            "CHANGELOG.md",
+            "README.md",
+            "library.json",
+            "library.properties",
+            "LICENSE"
+        ]
+    }
+}
