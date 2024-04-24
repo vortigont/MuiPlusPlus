@@ -10,8 +10,8 @@ class MatchLabel : public std::unary_function<T, bool>{
 public:
   explicit MatchLabel(const char* label) : _lookup(label) {}
   bool operator() (const T& item ){
-      // T is MuiItem_pt
-      return _lookup.compare(item->getName()) == 0;
+      // T is MuiPage
+      return _lookup.compare(item.getName()) == 0;
   }
 };
 

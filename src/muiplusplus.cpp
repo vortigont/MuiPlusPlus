@@ -53,6 +53,8 @@ mui_err_t MuiPlusPlus::addMuippItem(MuiItem_pt item, muiItem_id page_id){
   return mui_err_t::ok;
 }
 
+
+
 mui_err_t MuiPlusPlus::addItemToPage(muiItem_id item_id, muiItem_id page_id){
   if (!page_id || !page_id) return mui_err_t::id_err;
 
@@ -76,13 +78,14 @@ mui_err_t MuiPlusPlus::addItemToPage(muiItem_id item_id, muiItem_id page_id){
 
 void MuiPlusPlus::menuStart(muiItem_id page, muiItem_id item){
   // switch to page, if error, then select first page by default
-  if( switchTo(page, item) != mui_err_t::ok){
+  if( switchToIdx(page, item) != mui_err_t::ok){
     prevPage = currentPage = pages.begin();
     item_active = false;
   }
 }
 
-mui_err_t MuiPlusPlus::switchTo(muiItem_id page, muiItem_id item){
+
+mui_err_t MuiPlusPlus::switchToIdx(muiItem_id page, muiItem_id item){
   auto p = _page_by_id(page);
   if ( p == pages.cend() ){
     return mui_err_t::id_err;
@@ -110,6 +113,15 @@ mui_err_t MuiPlusPlus::switchTo(muiItem_id page, muiItem_id item){
   focusedItem = _item_by_id((*currentPage).items.at(0)); // std::find_if(items.begin(), items.end(), MatchID<MuiItem_pt>((*currentPage).items.at(0)));
   item_active = false;
   return mui_err_t::ok;
+}
+
+
+mui_err_t MuiPlusPlus::switchToLabel(const char* label){
+  auto p = _page_by_label(label);
+  if ( p != pages.cend() ){
+    return switchToIdx((*p).id);
+  }
+  return mui_err_t::id_err;
 }
 
 
@@ -142,7 +154,8 @@ mui_event MuiPlusPlus::muiEvent(mui_event e){
   // there and process reply event
   if (item_active && focusedItem != items.end()){
     if (static_cast<size_t>(e.eid) < 100 || static_cast<size_t>(e.eid) >= 200 )
-        return _feedback_event((*focusedItem)->muiEvent(e));
+        _feedback_event((*focusedItem)->muiEvent(e));
+        return {};
   }
 
   // otherwise pass event to menu navigation function
@@ -167,9 +180,9 @@ mui_event MuiPlusPlus::_menu_navigation(mui_event e){
 
 }
 
-  mui_event MuiPlusPlus::_feedback_event(mui_event e){
-    return {};
-  }
+void MuiPlusPlus::_feedback_event(mui_event e){
+//  return {};
+}
 
 
 

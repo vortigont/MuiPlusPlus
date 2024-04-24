@@ -195,14 +195,22 @@ class MuiPlusPlus {
    * @param id 
    * @return std::list<MuiItem_pt>::iterator 
    */
+  std::vector<MuiPage>::iterator _page_by_label(const char* label){ return std::find_if(pages.begin(), pages.end(), MatchLabel<MuiPage>(label)); }
+
+  /**
+   * @brief find item byt it's id
+   * 
+   * @param id 
+   * @return std::list<MuiItem_pt>::iterator 
+   */
   std::list<MuiItem_pt>::iterator _item_by_id(muiItem_id id){ return std::find_if(items.begin(), items.end(), MatchID<MuiItem_pt>(id)); }
+
 
   /**
    * @brief event handler that item may return in reply to input event
    * 
-   * @param e 
    */
-  mui_event _feedback_event(mui_event e);
+  void _feedback_event(mui_event e);
 
   /**
    * @brief hanles event on navigating the menu
@@ -222,11 +230,18 @@ public:
    */
   void menuStart(muiItem_id page, muiItem_id item = 0);
 
+  /**
+   * @brief generate next available id for the item
+   * todo: validate that id is free
+   * 
+   * @return uint32_t 
+   */
   uint32_t nextIndex(){ return ++_items_index; }
 
   muiItem_id makePage(const char* name = nullptr, item_opts options = item_opts());
 
   mui_err_t addMuippItem(MuiItem_pt item, muiItem_id page_id = 0);
+
 
   //mui_err_t addMuippItem(MuiItem&& item, muiItem_id page_id = 0);//{ addMuippItem( std::make_unique<MuiItem_pt>(std::move(item)), page_id); };
 
@@ -242,12 +257,19 @@ public:
   mui_event muiEvent(mui_event e);
 
   /**
-   * @brief switch to specified page with specified id
+   * @brief switch to specified page with id 'page' and (optionaly) item id
    * 
+   * @param page id to switch to
+   * @param item id to switch to
+   */
+  mui_err_t switchToIdx(muiItem_id page, muiItem_id item = 0);
+
+  /**
+   * @brief switch to specified page by label
+   * @note page search is 
    * @param page 
    */
-  mui_err_t switchTo(muiItem_id page, muiItem_id item = 0);
-
+  mui_err_t switchToLabel(const char* label);
 
   // before calling render on each items
   //void setPreExec();
