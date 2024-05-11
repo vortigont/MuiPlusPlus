@@ -16,7 +16,7 @@ using stringbyindex_cb_t = std::function< const char* (size_t index)>;
  * title string will be passed here by MuiPlusPlus class renderer
  * 
  */
-class MuiItem_U8g2_PageTitle : public MuiItem {
+class MuiItem_U8g2_PageTitle : public MuiItem_Uncontrollable {
   U8G2 &_u8g2;
   const uint8_t* _font;
   u8g2_uint_t _x, _y;
@@ -29,8 +29,8 @@ public:
    * @param font use font for printing, if null, then do not switch font
    * @param x, y Coordinates of the top left corner to start printing
    */
-  MuiItem_U8g2_PageTitle(U8G2 &u8g2, muiItem_id id, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
-    : MuiItem(id, nullptr, {false, false}), _u8g2(u8g2), _font(font), _x(x), _y(y) {};
+  MuiItem_U8g2_PageTitle(U8G2 &u8g2, muiItemId id, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
+    : MuiItem_Uncontrollable(id, nullptr, {false, false}), _u8g2(u8g2), _font(font), _x(x), _y(y) {};
 
   void render(const MuiItem* parent) override;
 };
@@ -40,7 +40,6 @@ class MuiItem_U8g2_BackButton : public MuiItem {
   U8G2 &_u8g2;
   const uint8_t* _font;
   u8g2_uint_t _x, _y;
-  bool focus{false};
 public:
   /**
    * @brief Construct a new MuiItem_U8g2_PageTitle object
@@ -50,7 +49,7 @@ public:
    * @param font use font for printing, if null, then do not switch font
    * @param x, y Coordinates of the top left corner to start printing
    */
-  MuiItem_U8g2_BackButton(U8G2 &u8g2, muiItem_id id, const char* label, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
+  MuiItem_U8g2_BackButton(U8G2 &u8g2, muiItemId id, const char* label, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
     : MuiItem(id, label, {true, false}), _u8g2(u8g2), _font(font), _x(x), _y(y) {};
 
   // render method
@@ -115,7 +114,7 @@ public:
    * @param x, y Coordinates of the top left corner to start printing
    */
   MuiItem_U8g2_DynamicScrollList(U8G2 &u8g2,
-      muiItem_id id,
+      muiItemId id,
       stringbyindex_cb_t label_cb,
       size_cb_t count,
       index_cb_t action_cb,

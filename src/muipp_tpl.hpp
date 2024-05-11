@@ -1,6 +1,6 @@
 #pragma once
 
-using muiItem_id = uint32_t;
+using muiItemId = uint32_t;
 
 
 // Unary predicate for Mui's label search matching
@@ -18,9 +18,9 @@ public:
 // Unary predicate for Mui's ID search matching
 template <class T>
 class MatchID : public std::unary_function<T, bool>{
-  muiItem_id _id;
+  muiItemId _id;
 public:
-  explicit MatchID(muiItem_id id) : _id(id) {}
+  explicit MatchID(muiItemId id) : _id(id) {}
   bool operator() (const T& item ){
       // T is MuiItem_pt
       return item->id == _id;
@@ -30,9 +30,9 @@ public:
 // Unary predicate for Mui's ID search matching
 template <class T>
 class MatchPageID : public std::unary_function<T, bool>{
-  muiItem_id _id;
+  muiItemId _id;
 public:
-  explicit MatchPageID(muiItem_id id) : _id(id) {}
+  explicit MatchPageID(muiItemId id) : _id(id) {}
   bool operator() (const T& item ){
       // T is MuiPage
       return item.id == _id;

@@ -101,10 +101,13 @@ protected:
 
 public:
   // numeric identificator of item
-  const muiItem_id  id;
+  const muiItemId  id;
+
+  bool focused{false};
+  bool selected{false};
 
   //MuiItem(){};
-  MuiItem(muiItem_id id, const char* name = nullptr, item_opts options = item_opts()) : id(id), name(name), opt(options) {};
+  MuiItem(muiItemId id, const char* name = nullptr, item_opts options = item_opts()) : id(id), name(name), opt(options) {};
   virtual ~MuiItem(){};
 
   virtual const char* getName() const { return name; };
@@ -119,7 +122,7 @@ public:
    */
   virtual bool getSelectable() const { return opt.selectable; }
 
-  virtual void setSelectable(bool value) { opt.selectable = value; }
+  //virtual void setSelectable(bool value) { opt.selectable = value; }
 
   virtual bool getHidden() const { return opt.hidden; }
 
@@ -143,51 +146,71 @@ public:
   virtual void render(const MuiItem* parent){};
 };
 
-using MuiItem_pt = std::unique_ptr<MuiItem>;
+// Item pointer type declaration
+//using MuiItem_pt = std::unique_ptr<MuiItem>;
+using MuiItem_pt = std::shared_ptr<MuiItem>;
 
 class MuiItem_Uncontrollable : public MuiItem {
 public:
+  using MuiItem::MuiItem;
   bool getSelectable() const override final { return false; }
-  void setSelectable(bool value) override final {}
+  //void setSelectable(bool value) override final {}
 };
 
 
+/**
+ * @brief MuiPage is just a containter MuiItem with refs to other MuiItem objects
+ * 
+ */
 class MuiPage : public MuiItem {
   friend class MuiPlusPlus;
-  std::vector<muiItem_id> items;
-  //std::vector<muiItem_id>::iterator currentItem;
-  // previous page id (points back to self by default)
-
+  std::list<MuiItem_pt> items;
+  std::list<MuiItem_pt>::iterator currentItem;
+  // if itm_selected is true, than focused item will receive events from a cursor
+  bool itm_selected{false};
+  // parent page id (zero -> no parent page)
+  muiItemId parent_page;
+  
 public:
-  using MuiItem::MuiItem;
-  //void addMuippItem(muiItem_id item_id){ items.push_back(item_id); currentItem = items.begin(); };
+  MuiPage(muiItemId id, const char* name = nullptr, muiItemId parent = 0, item_opts options = item_opts())
+    : MuiItem(id, name, options), parent_page(parent) { currentItem = items.end(); };
+
+  /**
+   * @brief specifies if there is an item on a page that will
+   * get focus and autoselected when switching to this page
+   * could be usefull for menu-lists, etc...
+   * 
+   */
+  muiItemId autoSelect{0};
+
+  //using MuiItem::MuiItem;
+  //void addMuippItem(muiItemId item_id){ items.push_back(item_id); currentItem = items.begin(); };
 };
 
-//using MuiPage_pt = std::unique_ptr<MuiPage>;
 
 
 class MuiPlusPlus {
 
   // sequence number for the items
-  muiItem_id _items_index{0};
+  muiItemId _items_index{0};
+  muiItemId _pages_index{0};
 
 //protected:
   std::list<MuiItem_pt> items;
-  std::vector<MuiPage> pages;
-  std::vector<MuiPage>::iterator currentPage;
-  std::vector<MuiPage>::iterator prevPage;
-  std::list<MuiItem_pt>::iterator focusedItem;
+  std::list<MuiPage> pages;
+  std::list<MuiPage>::iterator currentPage;
+  //std::vector<MuiPage>::iterator prevPage;
+  //std::list<MuiItem_pt>::iterator focusedItem;
   //std::list<MuiItem_pt>::iterator previousItem;
   // if item_active is true, than focused item will receive events from a cursor
-  bool item_active{false};
 
   /**
    * @brief find page by it's id
    * 
    * @param id 
-   * @return std::vector<MuiPage>::iterator 
+   * @return std::list<MuiPage>::iterator 
    */
-  std::vector<MuiPage>::iterator _page_by_id(muiItem_id id){ return std::find_if(pages.begin(), pages.end(), MatchPageID<MuiPage>(id)); }
+  std::list<MuiPage>::iterator _page_by_id(muiItemId id){ return std::find_if(pages.begin(), pages.end(), MatchPageID<MuiPage>(id)); }
 
   /**
    * @brief find item byt it's id
@@ -195,19 +218,19 @@ class MuiPlusPlus {
    * @param id 
    * @return std::list<MuiItem_pt>::iterator 
    */
-  std::vector<MuiPage>::iterator _page_by_label(const char* label){ return std::find_if(pages.begin(), pages.end(), MatchLabel<MuiPage>(label)); }
+  std::list<MuiPage>::iterator _page_by_label(const char* label){ return std::find_if(pages.begin(), pages.end(), MatchLabel<MuiPage>(label)); }
 
   /**
-   * @brief find item byt it's id
+   * @brief find item by it's id
    * 
    * @param id 
    * @return std::list<MuiItem_pt>::iterator 
    */
-  std::list<MuiItem_pt>::iterator _item_by_id(muiItem_id id){ return std::find_if(items.begin(), items.end(), MatchID<MuiItem_pt>(id)); }
+  std::list<MuiItem_pt>::iterator _item_by_id(muiItemId id){ return std::find_if(items.begin(), items.end(), MatchID<MuiItem_pt>(id)); }
 
 
   /**
-   * @brief event handler that item may return in reply to input event
+   * @brief handler for an event that item may return in reply to input event
    * 
    */
   void _feedback_event(mui_event e);
@@ -220,15 +243,17 @@ class MuiPlusPlus {
    */
   mui_event _menu_navigation(mui_event e);
 
-  void _move_to_prev_item();
+  void _prev_page();
 
 public:
+
+  MuiPlusPlus();
 
   /**
    * @brief start menu from specified page and (optionally) selecting an item
    * 
    */
-  void menuStart(muiItem_id page, muiItem_id item = 0);
+  void menuStart(muiItemId page, muiItemId item = 0);
 
   /**
    * @brief generate next available id for the item
@@ -238,14 +263,33 @@ public:
    */
   uint32_t nextIndex(){ return ++_items_index; }
 
-  muiItem_id makePage(const char* name = nullptr, item_opts options = item_opts());
+  /**
+   * @brief create new page
+   * 
+   * @param name - page label. Pointer MUST persist while page exists!
+   * @param parent - parent page id, 0 - if it is a root page
+   * @param options - options struct
+   * @return muiItemId 
+   */
+  muiItemId makePage(const char* name = nullptr, muiItemId parent = 0, item_opts options = item_opts());
 
-  mui_err_t addMuippItem(MuiItem_pt item, muiItem_id page_id = 0);
+  /**
+   * @brief assign item on a page as "autoselecting"
+   * i.t. this item will get focus and autoselected when switching to this page
+   * could be usefull for menu-lists, sinlge active items etc...
+   * @param page_idx page index
+   * @param item_id item index
+   * @return mui_err_t return ok or err if either page or item does not exist or not bound
+   */
+  mui_err_t pageAutoSelect(muiItemId page_id, muiItemId item_id);
 
+  mui_err_t addMuippItem(MuiItem_pt item, muiItemId page_id = 0);
 
-  //mui_err_t addMuippItem(MuiItem&& item, muiItem_id page_id = 0);//{ addMuippItem( std::make_unique<MuiItem_pt>(std::move(item)), page_id); };
+  mui_err_t addMuippItem(MuiItem *item, muiItemId page_id = 0);
 
-  mui_err_t addItemToPage(muiItem_id item_id, muiItem_id page_id);
+  //mui_err_t addMuippItem(MuiItem&& item, muiItemId page_id = 0);//{ addMuippItem( std::make_unique<MuiItem_pt>(std::move(item)), page_id); };
+
+  mui_err_t addItemToPage(muiItemId item_id, muiItemId page_id);
 
   /**
    * @brief event sink
@@ -257,19 +301,27 @@ public:
   mui_event muiEvent(mui_event e);
 
   /**
-   * @brief switch to specified page with id 'page' and (optionaly) item id
+   * @brief switch to specified page with id 'page' and (optionally) item id
    * 
    * @param page id to switch to
    * @param item id to switch to
    */
-  mui_err_t switchToIdx(muiItem_id page, muiItem_id item = 0);
+  mui_err_t goPageId(muiItemId page_id, muiItemId item_id = 0);
 
   /**
    * @brief switch to specified page by label
    * @note page search is 
    * @param page 
    */
-  mui_err_t switchToLabel(const char* label);
+  mui_err_t goPageLbl(const char* label);
+
+  /**
+   * @brief focus on specified item on a page
+   * if item on a page is not found, focus on next available item
+   * @param item_idx 
+   * @return mui_err_t 
+   */
+  mui_err_t goItmId(muiItemId item_id);
 
   // before calling render on each items
   //void setPreExec();
@@ -279,6 +331,10 @@ public:
 
   // after calling render items
   //void setPostExec();
+
+// other private methods
+private:
+
 };
 
 

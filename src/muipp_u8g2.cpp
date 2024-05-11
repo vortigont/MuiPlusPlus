@@ -24,7 +24,7 @@ void MuiItem_U8g2_BackButton::render(const MuiItem* parent){
     _u8g2.setFont(_font);
 
   // draw button
-  _u8g2.drawButtonUTF8(_x, _y, focus ? U8G2_BTN_INV : 0, 0, 1, 1, name);
+  _u8g2.drawButtonUTF8(_x, _y, focused ? U8G2_BTN_INV : 0, 0, 1, 1, name);
 
   //_u8g2.setCursor(_x, _y);
   // specified cursor position will be the top reference for the Title text
@@ -37,22 +37,16 @@ mui_event MuiItem_U8g2_BackButton::muiEvent(mui_event e){
   switch(e.eid){
     // actions 'focus' and 'enter' will trigger 'back' event
     case mui_event_t::select :
-    case mui_event_t::enter : 
-      return mui_event(mui_event_t::escape);
-    // cursor actions - move to next position in a list
-    case mui_event_t::focus :
-      focus = true;
-      break;
-    case mui_event_t::unfocus :
-      focus = false;
-      break;
+    case mui_event_t::enter :
+      Serial.println("BackButton");
+      return mui_event(mui_event_t::prevPage);
   }
   return {};
 }
 
 
 void MuiItem_U8g2_DynamicScrollList::render(const MuiItem* parent){
-  //Serial.println("Print list");
+  Serial.printf("Print list of %u items\n", _size_cb());
 
 //  if (_font)
   //  _u8g2.setFont(_font);
@@ -71,6 +65,7 @@ void MuiItem_U8g2_DynamicScrollList::render(const MuiItem* parent){
       _u8g2.setFont(_font2);
 
     // draw button
+    Serial.printf("btn %u:%s\n", visible_idx, _cb(visible_idx));
     _u8g2.drawButtonUTF8(_x, _y + _y_shift*i, visible_idx == _index ? U8G2_BTN_INV : 0, 0, 1, 1, _cb(visible_idx));
 
     if (++visible_idx >= _size_cb())
@@ -80,7 +75,7 @@ void MuiItem_U8g2_DynamicScrollList::render(const MuiItem* parent){
 
 
 mui_event MuiItem_U8g2_DynamicScrollList::muiEvent(mui_event e){
-  //Serial.printf("DynamicScrollList:%u\n", static_cast<uint32_t>(e.eid));
+  Serial.printf("DynamicScrollList::muiEvent %u\n", static_cast<uint32_t>(e.eid));
   switch(e.eid){
     // cursor actions - move to previous position in a list
     case mui_event_t::moveUp :
@@ -101,7 +96,11 @@ mui_event MuiItem_U8g2_DynamicScrollList::muiEvent(mui_event e){
     }
 
     case mui_event_t::enter : {
-      if (_action) _action(_index);
+      if (listopts.page_selector)
+        return mui_event(mui_event_t::goPageByName, 0, static_cast<void*>(const_cast<char*>(_cb(_index))) );
+      if (_action)
+        _action(_index);
+      break;
     }
   }
   return {};
