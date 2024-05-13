@@ -77,8 +77,6 @@ mui_err_t MuiPlusPlus::addItemToPage(muiItemId item_id, muiItemId page_id){
   }
 
   // I do not care if such item does not exist NOW, it won't be rendered/found after, so not a big deal
-//
-  //auto i = std::find_if(items.cbegin(), items.cend(), MatchID<MuiItem_pt>(item_id));
   auto i = _item_by_id(item_id);
   if ( i == items.end() ){
     Serial.printf("item:%u not found\n", item_id);
@@ -114,6 +112,8 @@ mui_err_t MuiPlusPlus::goPageId(muiItemId page_id, muiItemId item_id){
   }
 
   currentPage = p;
+  // invalidate current item iterator
+  (*currentPage).currentItem = (*currentPage).items.end();
 
   // try to focus and select specified item on a page
   if ( item_id && (goItmId(item_id) == mui_err_t::ok) ) return mui_err_t::ok;
@@ -127,9 +127,9 @@ mui_err_t MuiPlusPlus::goPageId(muiItemId page_id, muiItemId item_id){
     return mui_err_t::ok;
   }
 
-  // Otherwise, let's just focus on a first item on a page. If this item is passive, then it will simply do nothing and next cursor move events will switch to a proper one
-  (*currentPage).currentItem = (*currentPage).items.begin(); // _item_by_id((*currentPage).items.front());
-  (*currentPage).itm_selected = false;
+  // Otherwise, let's try to find first focusable item on a page
+  _any_focusable_item_on_a_page_b();
+  // if nothing found, well... this page is empty...
   return mui_err_t::ok;
 }
 
@@ -148,7 +148,9 @@ mui_err_t MuiPlusPlus::goItmId(muiItemId item_id){
   auto it = std::find_if( (*currentPage).items.begin(), (*currentPage).items.end(), MatchID<MuiItem_pt>(item_id) );
   if (it == (*currentPage).items.end()) return mui_err_t::id_err;
 
-  // OK, item is indeed found, we are happy
+  // OK, item is indeed found, we are happy, check if it is not static
+  if ( (*it)->getConstant() )
+    return mui_err_t::id_err;
 
   // unfocus and notify current item if it is defined
   if ( (currentPage != pages.end()) && ((*currentPage).currentItem != (*currentPage).items.end()) && (*(*currentPage).currentItem)->focused ){
@@ -157,7 +159,7 @@ mui_err_t MuiPlusPlus::goItmId(muiItemId item_id){
   }
 
   (*currentPage).currentItem = it;
-  // check if item is selectable, then foucus on it and select it
+  // check if item is selectable, then focus on it and select it
   if ((*it)->getSelectable()){
     (*currentPage).itm_selected = true;
     // update new item's focus flag
@@ -192,14 +194,22 @@ void MuiPlusPlus::render(){
 
 mui_event MuiPlusPlus::muiEvent(mui_event e){
   Serial.printf("MPP event:%u\n", static_cast<uint32_t>(e.eid));
+  _evt_recursion = 0;
   if (e.eid == mui_event_t::noop) return e;
 
   // if focused Item on current page exist and active - pass navigation and value events there and process reply event
-  if ( (*currentPage).currentItem != (*currentPage).items.cend() && (*currentPage).itm_selected ){
-    if (static_cast<size_t>(e.eid) < 100 || static_cast<size_t>(e.eid) >= 200 )
-      _feedback_event( (* (*currentPage).currentItem )->muiEvent(e) );
-    return {};
+  if ( (*currentPage).currentItem != (*currentPage).items.end() ){
+    // if item is selected then it could receive cursor + value envets 
+    if ((*currentPage).itm_selected && (static_cast<size_t>(e.eid) < 100 || static_cast<size_t>(e.eid) >= 200) ){
+      return _menu_navigation( (* (*currentPage).currentItem )->muiEvent(e) );
+    }
+
+    // if item is not selectable, then it can still receive value and "enter" events without grabbing cursor navigation
+    if ((* (*currentPage).currentItem )->getSelectable() == false && (e.eid == mui_event_t::enter || static_cast<size_t>(e.eid) >= 200) ){
+      return _menu_navigation( (* (*currentPage).currentItem )->muiEvent(e) );
+    }
   }
+
 
   // otherwise pass event to menu navigation function
   if (static_cast<size_t>(e.eid) < 200)
@@ -209,8 +219,9 @@ mui_event MuiPlusPlus::muiEvent(mui_event e){
 }
 
 mui_event MuiPlusPlus::_menu_navigation(mui_event e){
-  // do not work on empty pages (for now)
-  if ( (*currentPage).items.size() == 0 ) return {};
+  // do not work on empty pages (for now), check recursion level
+  if ( (*currentPage).items.size() == 0 || (++_evt_recursion > MAX_NESTED_EVENTS) ) return {};
+  Serial.printf("_menu_navigation evt:%u, recursion:%u\n", static_cast<uint32_t>(e.eid), _evt_recursion);
 
   switch(e.eid){
     // cursor actions
@@ -218,68 +229,63 @@ mui_event MuiPlusPlus::_menu_navigation(mui_event e){
     // focus on previous item on a page
     case mui_event_t::moveUp :
     case mui_event_t::moveLeft :
-      (*(*currentPage).currentItem)->focused = false;
-      // notify current item that it has lost focus
-      (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::unfocus));
-      // focus on previous item
-      if ((*currentPage).currentItem != (*currentPage).items.begin() && (*currentPage).currentItem != (*currentPage).items.end())
-        --(*currentPage).currentItem;
-      else  // if there is no prev item, switch to last one
-        (*currentPage).currentItem = std::prev((*currentPage).items.end());
-      // update focus flag
-      (*(*currentPage).currentItem)->focused = true;
-      // notify item that it received focus
-      _feedback_event( (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::focus)) );
+      _evt_prevItm();
       break;
 
     // focus on next item on a page
     case mui_event_t::moveDown :
     case mui_event_t::moveRight :
-      (*(*currentPage).currentItem)->focused = false;
-      // notify current item that it has lost focus
-      _feedback_event( (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::unfocus)) );
-      // move focus on next item
-      ++(*currentPage).currentItem;
-      if ((*currentPage).currentItem == (*currentPage).items.end())
-        (*currentPage).currentItem = (*currentPage).items.begin();
-
-      // update focus flag
-      (*(*currentPage).currentItem)->focused = true;
-      // notify item that it received focus
-      _feedback_event( (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::focus)) );
+      _evt_nextItm();
       break;
 
-    // activate focused item, i.e. it will start receiving events from Menu
+    // enter/action event
     case mui_event_t::enter :
-      (*currentPage).itm_selected = true;
-      (*(*currentPage).currentItem)->selected = true;
-      _feedback_event( (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::select)) );
+      // if focused item is selectable, mark it as selected, it will start stealing cursor evetns from menu navigator untill released
+      if ((*(*currentPage).currentItem)->getSelectable())
+        (*currentPage).itm_selected = true;
+      _menu_navigation( (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::select)) );
       break;
+
+    // go to previous page
+    case mui_event_t::prevPage :
+      return _prev_page();
+
+    // go to page by name label
+    case mui_event_t::goPageByName :
+      goPageLbl(static_cast<const char*>(e.arg) );
+      break;
+
+    case mui_event_t::escape :
+      return _evt_escape();
+
   }
+
+  // no-op
   return {};
 }
 
 void MuiPlusPlus::_feedback_event(mui_event e){
   Serial.printf("_feedback_event:%u\n", static_cast<uint32_t>(e.eid));
   switch(e.eid){
+    case mui_event_t::prevPage :
+      _prev_page();
+      break;
     case mui_event_t::goPageByName :
       goPageLbl(static_cast<const char*>(e.arg) );
       break;
     // 
-    case mui_event_t::prevPage :
-      _prev_page();
-      break;
-    break;
   }
 }
 
-void MuiPlusPlus::_prev_page(){
+mui_event MuiPlusPlus::_prev_page(){
   // check if current page has any parent page 
-  if ( (*currentPage).parent_page == 0 ){
-    return;
+  if ( (*currentPage).parent_page ){
+    goPageId((*currentPage).parent_page);
+    return {};
   }
 
-  goPageId((*currentPage).parent_page);
+  // otherwise I'm at the top level and all I can do is to signal menu quit
+  return mui_event(mui_event_t::quitMenu);
 }
 
 mui_err_t MuiPlusPlus::pageAutoSelect(muiItemId page_id, muiItemId item_id){
@@ -299,7 +305,121 @@ mui_err_t MuiPlusPlus::pageAutoSelect(muiItemId page_id, muiItemId item_id){
   return mui_err_t::id_err;
 }
 
+mui_event MuiPlusPlus::_evt_escape(){
+  Serial.println("_evt_escape");
+  if (currentPage == pages.end()){
+    // I'm in some undeterminated state where curent page does not exist, signal to quit the menu
+    return mui_event(mui_event_t::quitMenu);
+  }
 
+  // first unselect current item if it's selected and let menu navigation work on moving focus on other items
+  if ((*currentPage).itm_selected == true){
+    (*currentPage).itm_selected == false;
+    return {};
+  }
 
+  // else I'm on a page and got escape event, I might try to switch to previos page,
+  // it will either witch or signal to quit the menu
+  return _prev_page();
+}
 
+uint32_t MuiPlusPlus::nextIndex(){
+  do {
+    ++_items_index;
+  } while(_item_by_id(_items_index) != items.end());
+
+  return _items_index;
+}
+
+mui_err_t MuiPlusPlus::_evt_nextItm(){
+  Serial.println("_evt_nextItm");
+  (*(*currentPage).currentItem)->focused = false;
+  // notify current item that it has lost focus
+  (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::unfocus));
+  // move focus on next item
+  while ( ++(*currentPage).currentItem != (*currentPage).items.end() ){
+    // stop on first non-const item
+    if ( !(*(*currentPage).currentItem)->getConstant() ) break;
+  }
+
+//  do{
+//    ++(*currentPage).currentItem;
+//  } while( ((*currentPage).currentItem != (*currentPage).items.end()) || (*(*currentPage).currentItem)->getConstant() );
+
+  if ((*currentPage).currentItem == (*currentPage).items.end())
+    return _any_focusable_item_on_a_page_b();
+  else {
+    // update focus flag
+    (*(*currentPage).currentItem)->focused = true;
+    // notify item that it received focus
+    _menu_navigation( (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::focus)) );
+  }
+  return mui_err_t::ok;
+}
+
+mui_err_t MuiPlusPlus::_evt_prevItm(){
+  Serial.println("_evt_prevItm");
+  (*(*currentPage).currentItem)->focused = false;
+  // notify current item that it has lost focus
+  (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::unfocus));
+  // move focus on next item
+  if ((*currentPage).currentItem == (*currentPage).items.begin())
+    (*currentPage).currentItem == (*currentPage).items.end();
+
+  while ( --(*currentPage).currentItem != (*currentPage).items.begin()){
+    Serial.println("p1");
+    // stop on first non-const item
+    if ( !(*(*currentPage).currentItem)->getConstant() ) break;
+  }
+
+//  do {
+//    Serial.println("p1");
+//    --(*currentPage).currentItem;
+//  } while( (*currentPage).currentItem != (*currentPage).items.begin() || (*(*currentPage).currentItem)->getConstant() );
+    Serial.println("p2");
+
+  // check if last iterator is reached head of list and still we have constant element that we can't focus on
+  if ((*currentPage).currentItem == (*currentPage).items.begin() && (*(*currentPage).currentItem)->getConstant())
+    return _any_focusable_item_on_a_page_e();
+  else {
+    Serial.println("p4");
+    // update focus flag
+    (*(*currentPage).currentItem)->focused = true;
+    // notify item that it received focus
+    _menu_navigation( (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::focus)) );
+  }
+  return mui_err_t::ok;
+}
+
+mui_err_t MuiPlusPlus::_any_focusable_item_on_a_page_b(){
+  Serial.println("_any_focusable_item_on_a_page_b");
+  for (auto it = (*currentPage).items.begin(); it != (*currentPage).items.end(); ++it){
+    if ( (*it)->getConstant() )
+      continue;
+    (*currentPage).currentItem = it;
+    // update new item's focus flag
+    (*it)->focused = true;
+    // notify item that it received focus
+    (*it)->muiEvent(mui_event(mui_event_t::focus));
+    return mui_err_t::ok;
+  }
+
+  return mui_err_t::id_err;
+}
+
+mui_err_t MuiPlusPlus::_any_focusable_item_on_a_page_e(){
+  Serial.println("_any_focusable_item_on_a_page_e");
+  for (auto it = std::prev( (*currentPage).items.end() ); it != (*currentPage).items.begin(); --it){
+    if ( (*it)->getConstant() )
+      continue;
+    (*currentPage).currentItem = it;
+    // update new item's focus flag
+    (*it)->focused = true;
+    // notify item that it received focus
+    (*it)->muiEvent(mui_event(mui_event_t::focus));
+    return mui_err_t::ok;
+  }
+
+  return mui_err_t::id_err;
+}
 

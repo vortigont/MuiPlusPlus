@@ -9,6 +9,8 @@
 //#include "clib/mui_u8g2.h"
 #include "Arduino.h"
 
+#define MAX_NESTED_EVENTS 5
+
 enum class mui_err_t {
   ok = 0,
   error,            // generic error
@@ -69,13 +71,13 @@ struct mui_event {
 };
 
 struct item_opts {
-  // defines if item can get focus on a page and receive control events
+  // defines if item could be selected on a page and could receive various control events
   bool selectable{true};
   /**
-   * hidden elements wont receive render() calls and can't be selected for control inputs
+   * static elements wont receive render() calls and can't be focused/selected for control inputs
    * but still could receive events from other items directly
   */
-  bool hidden{false};
+  bool constant{false};
 };
 
 
@@ -104,29 +106,30 @@ public:
   const muiItemId  id;
 
   bool focused{false};
-  bool selected{false};
+  //bool selected{false};
 
   //MuiItem(){};
   MuiItem(muiItemId id, const char* name = nullptr, item_opts options = item_opts()) : id(id), name(name), opt(options) {};
   virtual ~MuiItem(){};
 
-  virtual const char* getName() const { return name; };
+  const char* getName() const { return name; };
 
-  virtual const char* setName(const char* newname) { name = newname; return name; };
+  const char* setName(const char* newname) { name = newname; return name; };
 
   /**
-   * @brief returns true if Item can be selected (focused) on a page
-   * and will receive control events
+   * @brief returns true if Item can be selected on a page
+   * and will grab cursor control events, i.e. up/down, incr/decr, etc...
    * @return true 
    * @return false 
    */
   virtual bool getSelectable() const { return opt.selectable; }
 
-  //virtual void setSelectable(bool value) { opt.selectable = value; }
+  // set item selectable property
+  virtual void setSelectable(bool v) { opt.selectable = v; }
 
-  virtual bool getHidden() const { return opt.hidden; }
+  virtual bool getConstant() const { return opt.constant; }
 
-  virtual void setHidden(bool value) { opt.hidden = value; }
+  virtual void setConstant(bool value) { opt.constant = value; }
 
   void setEventCallBack(mui_event_cb c){ cb = c; };
 
@@ -154,7 +157,10 @@ class MuiItem_Uncontrollable : public MuiItem {
 public:
   using MuiItem::MuiItem;
   bool getSelectable() const override final { return false; }
-  //void setSelectable(bool value) override final {}
+  void setSelectable(bool v) override final {}
+  bool getConstant() const override final { return true; }
+  void setConstant(bool value) override final {}
+  mui_event muiEvent(mui_event e) override final { return {}; }
 };
 
 
@@ -199,10 +205,9 @@ class MuiPlusPlus {
   std::list<MuiItem_pt> items;
   std::list<MuiPage> pages;
   std::list<MuiPage>::iterator currentPage;
-  //std::vector<MuiPage>::iterator prevPage;
-  //std::list<MuiItem_pt>::iterator focusedItem;
-  //std::list<MuiItem_pt>::iterator previousItem;
-  // if item_active is true, than focused item will receive events from a cursor
+
+  // event callback level
+  unsigned _evt_recursion{0};
 
   /**
    * @brief find page by it's id
@@ -243,8 +248,6 @@ class MuiPlusPlus {
    */
   mui_event _menu_navigation(mui_event e);
 
-  void _prev_page();
-
 public:
 
   MuiPlusPlus();
@@ -257,11 +260,10 @@ public:
 
   /**
    * @brief generate next available id for the item
-   * todo: validate that id is free
    * 
    * @return uint32_t 
    */
-  uint32_t nextIndex(){ return ++_items_index; }
+  uint32_t nextIndex();
 
   /**
    * @brief create new page
@@ -334,6 +336,24 @@ public:
 
 // other private methods
 private:
+
+  mui_event _prev_page();
+
+  /**
+   * @brief handle generic 'escape' event
+   * depending on state escape event might switch menu to either other item, page
+   * or signal top-level quit menu event
+   * @return mui_event 
+   */
+  mui_event _evt_escape();
+
+  mui_err_t _evt_nextItm();
+
+  mui_err_t _evt_prevItm();
+
+  mui_err_t _any_focusable_item_on_a_page_b();
+
+  mui_err_t _any_focusable_item_on_a_page_e();
 
 };
 
