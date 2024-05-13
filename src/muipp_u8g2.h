@@ -6,10 +6,28 @@
 using size_cb_t = std::function< size_t (void)>;
 // callback function that accepts index value
 using index_cb_t = std::function< void (size_t index)>;
-// callback function that acppets index and returns const char* string associated with index
+// callback function that accepts index and returns const char* string associated with index
 using stringbyindex_cb_t = std::function< const char* (size_t index)>;
 
 
+class MuiItem_U8g2_Generic : public MuiItem {
+protected:
+  U8G2 &_u8g2;
+  const uint8_t* _font;
+  u8g2_uint_t _x, _y;
+
+public:
+  /**
+   * @brief Construct a new MuiItem_U8g2_PageTitle object
+   * generic object is NOT selectable!
+   * @param u8g2 reference to display object
+   * @param id assigned id for the item
+   * @param font use font for printing, if null, then do not switch font
+   * @param x, y Coordinates of the top left corner to start printing
+   */
+  MuiItem_U8g2_Generic(U8G2 &u8g2, muiItemId id, const char* label, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
+    : MuiItem(id, label, {false, false}), _u8g2(u8g2), _font(font), _x(x), _y(y) {};
+};
 
 /**
  * @brief this item print current page title
@@ -30,15 +48,15 @@ public:
    * @param x, y Coordinates of the top left corner to start printing
    */
   MuiItem_U8g2_PageTitle(U8G2 &u8g2, muiItemId id, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
-    : MuiItem_Uncontrollable(id, nullptr, {false, false}), _u8g2(u8g2), _font(font), _x(x), _y(y) {};
+    : MuiItem_Uncontrollable(id, nullptr, {false, true}), _u8g2(u8g2), _font(font), _x(x), _y(y) {};
 
   void render(const MuiItem* parent) override;
 };
 
-
-class MuiItem_U8g2_BackButton : public MuiItem {
+class MuiItem_U8g2_StaticText : public MuiItem_Uncontrollable {
   U8G2 &_u8g2;
   const uint8_t* _font;
+  const char* _text;
   u8g2_uint_t _x, _y;
 public:
   /**
@@ -49,8 +67,24 @@ public:
    * @param font use font for printing, if null, then do not switch font
    * @param x, y Coordinates of the top left corner to start printing
    */
-  MuiItem_U8g2_BackButton(U8G2 &u8g2, muiItemId id, const char* label, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
-    : MuiItem(id, label, {true, false}), _u8g2(u8g2), _font(font), _x(x), _y(y) {};
+  MuiItem_U8g2_StaticText(U8G2 &u8g2, muiItemId id, const char* txt, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
+    : MuiItem_Uncontrollable(id, nullptr, {false, true}), _u8g2(u8g2), _text(txt), _font(font), _x(x), _y(y) {};
+
+  void render(const MuiItem* parent) override;
+};
+
+
+class MuiItem_U8g2_BackButton : public MuiItem_U8g2_Generic {
+public:
+  /**
+   * @brief Construct a new MuiItem_U8g2_PageTitle object
+   * 
+   * @param u8g2 reference to display object
+   * @param id assigned id for the item
+   * @param font use font for printing, if null, then do not switch font
+   * @param x, y Coordinates of the top left corner to start printing
+   */
+  using MuiItem_U8g2_Generic::MuiItem_U8g2_Generic;
 
   // render method
   void render(const MuiItem* parent) override;
@@ -62,7 +96,7 @@ public:
 struct dynlist_options_t {
   // switch pages on action
   bool page_selector{false};
-  // last element of a list acts as 'previous' event
+  // last element of a list acts as 'previous page' event
   bool back_on_last{false};
 };
 
@@ -93,10 +127,6 @@ class MuiItem_U8g2_DynamicScrollList : public MuiItem {
   const uint8_t *_font1, *_font2;
   // current list index
   int _index{0};
-  //template <typename Iter>
-  //void listwriter (Iter it, Iter end) {
-  //    for (; it!=end; ++it) { /*...*/ }
-  //}
 
 public:
   /**
@@ -133,5 +163,29 @@ public:
   mui_event muiEvent(mui_event e) override;
 
   void render(const MuiItem* parent) override;
+};
+
+
+class MuiItem_U8g2_CheckBox : public MuiItem_U8g2_Generic {
+  // cehckbox value
+  bool _v;
+  index_cb_t _action;
+public:
+  /**
+   * @brief Construct a new MuiItem_U8g2_PageTitle object
+   * 
+   * @param u8g2 reference to display object
+   * @param id assigned id for the item
+   * @param font use font for printing, if null, then do not switch font
+   * @param x, y Coordinates of the top left corner to start printing
+   */
+  MuiItem_U8g2_CheckBox(U8G2 &u8g2, muiItemId id, const char* label, bool value, index_cb_t action_cb = nullptr, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
+    : MuiItem_U8g2_Generic(u8g2, id, label, font, x, y), _v(value), _action(action_cb) { setSelectable(false); }
+
+  // render method
+  void render(const MuiItem* parent) override;
+  // event handler
+  mui_event muiEvent(mui_event e) override;
+
 };
 
