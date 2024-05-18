@@ -1,4 +1,5 @@
 #pragma once
+#include <string_view>
 
 using muiItemId = uint32_t;
 

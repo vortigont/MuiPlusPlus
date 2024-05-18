@@ -98,19 +98,26 @@ protected:
   const char* name;
   // Item properties struct
   item_opts opt;
-  // event callback function
-  mui_event_cb cb = nullptr;
 
 public:
   // numeric identificator of item
   const muiItemId  id;
 
+  /**
+   * @brief flag is being set when item receives focus
+   * could be used to change item behavior or visual style
+   */
   bool focused{false};
-  //bool selected{false};
 
-  //MuiItem(){};
+  /**
+   * @brief event that could be returned on Item receiving escape event
+   * could be changed for i.e. prevPage, etc...
+   */
+  mui_event_t on_escape{ mui_event_t::escape};
+
+
   MuiItem(muiItemId id, const char* name = nullptr, item_opts options = item_opts()) : id(id), name(name), opt(options) {};
-  virtual ~MuiItem(){};
+  virtual ~MuiItem(){ Serial.printf("MuiItem d-tor, id:%u\n", id); };
 
   const char* getName() const { return name; };
 
@@ -131,7 +138,7 @@ public:
 
   virtual void setConstant(bool value) { opt.constant = value; }
 
-  void setEventCallBack(mui_event_cb c){ cb = c; };
+  //void setEventCallBack(mui_event_cb c){ cb = c; };
 
   /**
    * @brief item event receiver function
@@ -139,7 +146,7 @@ public:
    * @param e 
    * @return mui_event_t 
    */
-  virtual mui_event muiEvent(mui_event e){ return cb ? cb(e) : mui_event(); }
+  virtual mui_event muiEvent(mui_event e){ return {}; } // = 0; // { return cb ? cb(e) : mui_event(); }
 
   /**
    * @brief render item
@@ -160,7 +167,7 @@ public:
   void setSelectable(bool v) override final {}
   bool getConstant() const override final { return true; }
   void setConstant(bool value) override final {}
-  mui_event muiEvent(mui_event e) override final { return {}; }
+  //mui_event muiEvent(mui_event e) override final { return {}; }
 };
 
 
@@ -195,6 +202,12 @@ public:
 
 
 
+/**
+ * @brief MuiPlusPlus container onject
+ * it aggregates various items derivates, organize it into pages
+ * and provides methods to iterate and render items on page
+ * 
+ */
 class MuiPlusPlus {
 
   // sequence number for the items
@@ -249,8 +262,10 @@ class MuiPlusPlus {
   mui_event _menu_navigation(mui_event e);
 
 public:
-
+  // c-tor
   MuiPlusPlus();
+  // c-tor
+  virtual ~MuiPlusPlus(){};
 
   /**
    * @brief start menu from specified page and (optionally) selecting an item

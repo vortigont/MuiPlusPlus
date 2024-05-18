@@ -23,10 +23,38 @@ void MuiItem_U8g2_StaticText::render(const MuiItem* parent){
   if (_font)
     _u8g2.setFont(_font);
 
-  _u8g2.setCursor(_x, _y);
-  // specified cursor position will be the top reference for the Title text
-  _u8g2.setFontPosTop();
-  _u8g2.drawUTF8(_x, _y, _text);
+  u8g2_uint_t x;
+  // find horizontal position for cursor
+  switch (h_align){
+    // try to align text centered to defined _x, _y point
+    case text_align_t::center :
+      //_u8g2.setCursor( _x - _u8g2.getUTF8Width(_text)/2, _y);
+      x = _x - _u8g2.getUTF8Width(_text)/2;
+      break;
+    case text_align_t::right :
+      //_u8g2.setCursor( _x - _u8g2.getUTF8Width(_text), _y);
+      x = _x - _u8g2.getUTF8Width(_text);
+      break;
+    default:
+      x = _x;   //_u8g2.setCursor(_x, _y);
+  }
+
+  // set vertical position for cursor
+  switch (v_align){
+    case text_align_t::top :
+      _u8g2.setFontPosTop();
+      break;
+    case text_align_t::center :
+      _u8g2.setFontPosCenter();
+      break;
+    case text_align_t::bottom :
+      _u8g2.setFontPosBottom();
+      break;
+    default:
+      _u8g2.setFontPosBaseline();
+  }
+
+  _u8g2.drawUTF8(x, _y, _text);
 }
 
 
@@ -62,7 +90,7 @@ mui_event MuiItem_U8g2_BackButton::muiEvent(mui_event e){
 //}
 
 void MuiItem_U8g2_DynamicScrollList::render(const MuiItem* parent){
-  Serial.printf("Print list of %u items\n", _size_cb());
+  Serial.printf("DynScrl print lst of %u items\n", _size_cb());
 
   _u8g2.setCursor(_x, _y);
   // specified cursor position will be the top reference for the Title text
@@ -78,7 +106,7 @@ void MuiItem_U8g2_DynamicScrollList::render(const MuiItem* parent){
       _u8g2.setFont(_font2);
 
     // draw button
-    Serial.printf("btn %u:%s\n", visible_idx, _cb(visible_idx));
+    Serial.printf("draw Dynlist_btn %u:%s\n", visible_idx, _cb(visible_idx));
     _u8g2.drawButtonUTF8(_x, _y + _y_shift*i, visible_idx == _index ? U8G2_BTN_INV : 0, 0, 1, 1, _cb(visible_idx));
 
     if (++visible_idx >= _size_cb())
@@ -123,6 +151,10 @@ mui_event MuiItem_U8g2_DynamicScrollList::muiEvent(mui_event e){
       break;
     }
 
+    // enter acts as escape to release selection
+    case mui_event_t::escape :
+      return mui_event(on_escape);
+
     // all other events pass back to menuNavigator
     default:
       return e;  
@@ -138,7 +170,7 @@ void MuiItem_U8g2_CheckBox::render(const MuiItem* parent){
   _u8g2.setCursor(_x, _y);
   if (_font)
     _u8g2.setFont(_font);
-  // specified cursor position will be the top reference for the Title text
+  // specified cursor position will be the bottom reference for the Title text
   _u8g2.setFontPosBottom();
 
   int8_t a = _u8g2.getAscent();

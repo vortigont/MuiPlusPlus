@@ -30,11 +30,19 @@ MuiPlusPlus::MuiPlusPlus(){
   // invalidate iterator
   currentPage = pages.end();
 }
-
+/*
+MuiPlusPlus::~MuiPlusPlus(){
+  Serial.println("~MuiPlusPlus d-tor");
+  // invalidate iterator
+  currentPage = pages.end();
+  pages.clear();
+  items.clear();
+}
+*/
 muiItemId MuiPlusPlus::makePage(const char* name, muiItemId parent, item_opts options){
-  //auto z = std::make_unique<MuiPage>(++_items_index, name, options);
-  //pages.emplace_back(std::move(z));
-  pages.emplace_back(MuiPage(++_pages_index, name, parent, options));
+  ++_pages_index;
+  Serial.printf("makePage %u %s, parent %u\n", _pages_index, name, parent);
+  pages.emplace_back(_pages_index, name, parent, options);
   return _pages_index;
 }
 
@@ -47,7 +55,6 @@ mui_err_t MuiPlusPlus::addMuippItem(MuiItem_pt item, muiItemId page_id){
   }
 
   // add item to container
-  //items.emplace_back(std::move(item));
   items.emplace_back(item);
 
   // link item with the specified page
@@ -71,12 +78,11 @@ mui_err_t MuiPlusPlus::addItemToPage(muiItemId item_id, muiItemId page_id){
 
   // check if such page exist
   auto p = _page_by_id(page_id);
-  if ( p == pages.cend() ){
+  if ( p == pages.end() ){
     Serial.printf("page:%u not found\n", page_id);
     return mui_err_t::id_err;
   }
 
-  // I do not care if such item does not exist NOW, it won't be rendered/found after, so not a big deal
   auto i = _item_by_id(item_id);
   if ( i == items.end() ){
     Serial.printf("item:%u not found\n", item_id);
@@ -180,11 +186,6 @@ void MuiPlusPlus::render(){
 
   // render each item on a page
   for (auto itm : (*currentPage).items ){
-    // find Item with specified id
-    //auto itm = std::find_if(items.begin(), items.end(), MatchID<MuiItem_pt>(id));
-    //if ( itm == items.end() )
-    //  continue;                 // item not found, proceed with next one
-    
     //Serial.printf("Render item:%u\n", id);
     // render selected item passing it a reference to current page
     (*itm).render(&(*currentPage));
@@ -199,7 +200,7 @@ mui_event MuiPlusPlus::muiEvent(mui_event e){
 
   // if focused Item on current page exist and active - pass navigation and value events there and process reply event
   if ( (*currentPage).currentItem != (*currentPage).items.end() ){
-    // if item is selected then it could receive cursor + value envets 
+    // if item is selected then it could receive cursor + value events 
     if ((*currentPage).itm_selected && (static_cast<size_t>(e.eid) < 100 || static_cast<size_t>(e.eid) >= 200) ){
       return _menu_navigation( (* (*currentPage).currentItem )->muiEvent(e) );
     }
@@ -241,6 +242,7 @@ mui_event MuiPlusPlus::_menu_navigation(mui_event e){
     // enter/action event
     case mui_event_t::enter :
       // if focused item is selectable, mark it as selected, it will start stealing cursor evetns from menu navigator untill released
+      if ( currentPage == pages.end() || (*currentPage).currentItem == (*currentPage).items.end() || !(*(*currentPage).currentItem) ) break;    // if iterator is invalidated
       if ((*(*currentPage).currentItem)->getSelectable())
         (*currentPage).itm_selected = true;
       _menu_navigation( (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::select)) );
@@ -306,20 +308,19 @@ mui_err_t MuiPlusPlus::pageAutoSelect(muiItemId page_id, muiItemId item_id){
 }
 
 mui_event MuiPlusPlus::_evt_escape(){
-  Serial.println("_evt_escape");
   if (currentPage == pages.end()){
     // I'm in some undeterminated state where curent page does not exist, signal to quit the menu
     return mui_event(mui_event_t::quitMenu);
   }
 
   // first unselect current item if it's selected and let menu navigation work on moving focus on other items
-  if ((*currentPage).itm_selected == true){
-    (*currentPage).itm_selected == false;
+  if ((*currentPage).itm_selected){
+    (*currentPage).itm_selected = false;
     return {};
   }
 
   // else I'm on a page and got escape event, I might try to switch to previos page,
-  // it will either witch or signal to quit the menu
+  // it will either switch or signal to quit the menu
   return _prev_page();
 }
 
@@ -333,9 +334,17 @@ uint32_t MuiPlusPlus::nextIndex(){
 
 mui_err_t MuiPlusPlus::_evt_nextItm(){
   Serial.println("_evt_nextItm");
-  (*(*currentPage).currentItem)->focused = false;
-  // notify current item that it has lost focus
-  (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::unfocus));
+  if ( !(*currentPage).items.size() || (*currentPage).currentItem == (*currentPage).items.end() ){
+    // invalid iterator, nothing on page we can work on
+    Serial.println("no valid items on a page!");
+    return mui_err_t::id_err;
+  }
+
+  if (!(*(*currentPage).currentItem)->getConstant()){
+    (*(*currentPage).currentItem)->focused = false;
+    // notify current item that it has lost focus
+    (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::unfocus));
+  }
   // move focus on next item
   while ( ++(*currentPage).currentItem != (*currentPage).items.end() ){
     // stop on first non-const item
@@ -359,10 +368,18 @@ mui_err_t MuiPlusPlus::_evt_nextItm(){
 
 mui_err_t MuiPlusPlus::_evt_prevItm(){
   Serial.println("_evt_prevItm");
-  (*(*currentPage).currentItem)->focused = false;
-  // notify current item that it has lost focus
-  (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::unfocus));
-  // move focus on next item
+  if ( !(*currentPage).items.size() || (*currentPage).currentItem == (*currentPage).items.end() ){
+    // invalid iterator, nothing on page we can work on
+    Serial.println("no valid items on a page!");
+    return mui_err_t::id_err;
+  }
+
+  if (!(*(*currentPage).currentItem)->getConstant()){
+    (*(*currentPage).currentItem)->focused = false;
+    // notify current item that it has lost focus
+    (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::unfocus));
+  }
+  // move focus on prev item
   if ((*currentPage).currentItem == (*currentPage).items.begin())
     (*currentPage).currentItem == (*currentPage).items.end();
 
@@ -409,6 +426,7 @@ mui_err_t MuiPlusPlus::_any_focusable_item_on_a_page_b(){
 
 mui_err_t MuiPlusPlus::_any_focusable_item_on_a_page_e(){
   Serial.println("_any_focusable_item_on_a_page_e");
+  if ( !(*currentPage).items.size())   return mui_err_t::id_err;
   for (auto it = std::prev( (*currentPage).items.end() ); it != (*currentPage).items.begin(); --it){
     if ( (*it)->getConstant() )
       continue;
@@ -420,6 +438,8 @@ mui_err_t MuiPlusPlus::_any_focusable_item_on_a_page_e(){
     return mui_err_t::ok;
   }
 
+  // invalidate itrator
+  (*currentPage).items.end();
   return mui_err_t::id_err;
 }
 
