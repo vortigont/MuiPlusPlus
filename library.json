@@ -23,7 +23,6 @@
         [
             "examples/*",
             "src/*",
-            "CHANGELOG.md",
             "README.md",
             "library.json",
             "library.properties",
