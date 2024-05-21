@@ -5,7 +5,7 @@ On-Screen Menu navigation and UI controls library for 32 bit MCUs.
 
 `MuiPlusPlus` is "Minimalistic UI on C Plus Plus". It all started with [MUI](https://github.com/olikraus/u8g2/wiki/muimanual#mui) - a really really nice minimalistic UI lib on top of [u8g2](https://github.com/olikraus/u8g2) by [olikraus](https://github.com/olikraus).
 I needed a menu lib for my project with monochrome LCD, [MUI](https://github.com/olikraus/u8g2/wiki/muimanual#mui) looked just what I needed fisrt. But then found that `MUI` is in pure C and it is really difficult to integrate it with C++ class-based dynamic menu design. It is missing functional callbacks, dynamic menu content is also quite limited or prety awkward to implement. It was discussed in theads [here](https://github.com/olikraus/u8g2/issues/2258) and [here](https://github.com/olikraus/u8g2/discussions/2252).
-To my surprize most of the libs around here for Arduino LCD menu's are designed in similar manner and lacks functional callbacks, even if they are build on C++ classes. The intention is to save resources as much as possible compromising flexibily. (i.e. [GEM](https://github.com/Spirik/GEM), [ArduinoMenu](https://github.com/neu-rah/ArduinoMenu). 
+To my surprize most of the libs around here for Arduino LCD menu's are designed in similar manner and lacks functional callbacks, even if they are build on C++ classes. The intention is to save resources as much as possible compromising flexibily. (i.e. [GEM](https://github.com/Spirik/GEM), [ArduinoMenu](https://github.com/neu-rah/ArduinoMenu)). 
 
 So I created this pretty simple lib to satisfy my needs working on modern 32 MCUs where I can afford some memory allocation for the sake of flexibily.
 

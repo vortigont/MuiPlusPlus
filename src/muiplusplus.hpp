@@ -71,11 +71,15 @@ struct mui_event {
 };
 
 struct item_opts {
-  // defines if item could be selected on a page and could receive various control events
+  /**
+   * @brief defines if item could be selected on a page and could receive various control events
+   * if item is not selectable then it could be just focused and can receive all events except it won't
+   * intercept cursor moves 
+   */
   bool selectable{true};
   /**
-   * static elements wont receive render() calls and can't be focused/selected for control inputs
-   * but still could receive events from other items directly
+   * constant elements can't be neither focused nor selected for control inputs
+   * but still could be rendered and could receive events from other items directly
   */
   bool constant{false};
 };
@@ -162,7 +166,8 @@ using MuiItem_pt = std::shared_ptr<MuiItem>;
 
 class MuiItem_Uncontrollable : public MuiItem {
 public:
-  using MuiItem::MuiItem;
+  MuiItem_Uncontrollable(muiItemId id, const char* name = nullptr) : MuiItem(id, name, {false, true}){}
+  //using MuiItem::MuiItem;
   bool getSelectable() const override final { return false; }
   void setSelectable(bool v) override final {}
   bool getConstant() const override final { return true; }

@@ -1,44 +1,7 @@
-//#include "stdint.h"
-#include "muipp_u8g2.h"
+#include "muipp_u8g2.hpp"
 #include "Arduino.h"
 
-
-
-// **************************
-// MUI functions
-
-//extern U8G2_SH1107_64X128_F_HW_I2C u8g2;
-
-void MuiItem_U8g2_PageTitle::render(const MuiItem* parent){
-  if (_font)
-    _u8g2.setFont(_font);
-
-  _u8g2.setCursor(_x, _y);
-  // specified cursor position will be the top reference for the Title text
-  _u8g2.setFontPosTop();
-  _u8g2.print(parent->getName());
-}
-
-void MuiItem_U8g2_StaticText::render(const MuiItem* parent){
-  if (_font)
-    _u8g2.setFont(_font);
-
-  u8g2_uint_t x;
-  // find horizontal position for cursor
-  switch (h_align){
-    // try to align text centered to defined _x, _y point
-    case text_align_t::center :
-      //_u8g2.setCursor( _x - _u8g2.getUTF8Width(_text)/2, _y);
-      x = _x - _u8g2.getUTF8Width(_text)/2;
-      break;
-    case text_align_t::right :
-      //_u8g2.setCursor( _x - _u8g2.getUTF8Width(_text), _y);
-      x = _x - _u8g2.getUTF8Width(_text);
-      break;
-    default:
-      x = _x;   //_u8g2.setCursor(_x, _y);
-  }
-
+u8g2_uint_t MuiItem_U8g2_Generic::getXoffset(const char* text){
   // set vertical position for cursor
   switch (v_align){
     case text_align_t::top :
@@ -54,7 +17,39 @@ void MuiItem_U8g2_StaticText::render(const MuiItem* parent){
       _u8g2.setFontPosBaseline();
   }
 
-  _u8g2.drawUTF8(x, _y, _text);
+  u8g2_uint_t xadj;
+  // find horizontal position for cursor
+  switch (h_align){
+    // try to align text centered to defined _x, _y point
+    case text_align_t::center :
+      xadj = _x - _u8g2.getUTF8Width(text)/2;
+      break;
+    case text_align_t::right :
+      //_u8g2.setCursor( _x - _u8g2.getUTF8Width(_text), _y);
+      xadj = _x - _u8g2.getUTF8Width(text);
+      break;
+    default:
+      xadj = _x;
+  }
+
+  return xadj;
+}
+
+
+void MuiItem_U8g2_PageTitle::render(const MuiItem* parent){
+  if (_font)
+    _u8g2.setFont(_font);
+
+  auto a = getXoffset(parent->getName());
+  _u8g2.drawUTF8(a, _y, parent->getName());
+}
+
+void MuiItem_U8g2_StaticText::render(const MuiItem* parent){
+  if (_font)
+    _u8g2.setFont(_font);
+
+  auto a = getXoffset(name);
+  _u8g2.drawUTF8(a, _y, name);
 }
 
 
@@ -63,12 +58,8 @@ void MuiItem_U8g2_BackButton::render(const MuiItem* parent){
     _u8g2.setFont(_font);
 
   // draw button
-  _u8g2.drawButtonUTF8(_x, _y, focused ? U8G2_BTN_INV : 0, 0, 1, 1, name);
-
-  //_u8g2.setCursor(_x, _y);
-  // specified cursor position will be the top reference for the Title text
-  //_u8g2.setFontPosTop();
-  //_u8g2.print(name);
+  auto a = getXoffset(name);
+  _u8g2.drawButtonUTF8(a, _y, focused ? U8G2_BTN_INV : 0, 0, 1, 1, name);
 }
 
 
@@ -100,8 +91,8 @@ void MuiItem_U8g2_DynamicScrollList::render(const MuiItem* parent){
   int visible_idx = clamp(_index - _num_of_rows/2, 0, static_cast<int>(_size_cb()-1) );
   for (int i = 0; i != _num_of_rows; ++i){
     // change font for active/inactive row
-    if (visible_idx == _index && _font1)
-      _u8g2.setFont(_font1);
+    if (visible_idx == _index && _font)
+      _u8g2.setFont(_font);
     else if (_font2)
       _u8g2.setFont(_font2);
 

@@ -23,13 +23,31 @@ enum class text_align_t {
   right
 };
 
-class MuiItem_U8g2_Generic : public MuiItem {
+class MuiItem_U8g2_Generic {
 protected:
   U8G2 &_u8g2;
   const uint8_t* _font;
+  // item's initial cursor position
   u8g2_uint_t _x, _y;
 
+  // horizontal alignment relative to cursor position
+  text_align_t h_align{text_align_t::left};
+  // vertical alignment relative to cursor position
+  text_align_t v_align{text_align_t::baseline};
+
+  /**
+   * @brief calculate adjusted x cursor position
+   * to print provided text acording to current text alignment parameters (v_alignm h_align)
+   * 
+   * @param text 
+   * @return u8g2_uint_t - calculate adjusted x position to start printing aligned text from
+   * it will also adjust FontPos... according to current v_align value
+   * 
+   */
+  u8g2_uint_t getXoffset(const char* text);
+
 public:
+
   /**
    * @brief Construct a new MuiItem_U8g2_PageTitle object
    * generic object is NOT selectable!
@@ -38,19 +56,25 @@ public:
    * @param font use font for printing, if null, then do not switch font
    * @param x, y Coordinates of the top left corner to start printing
    */
-  MuiItem_U8g2_Generic(U8G2 &u8g2, muiItemId id, const char* label, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
-    : MuiItem(id, label, {false, false}), _u8g2(u8g2), _font(font), _x(x), _y(y) {};
+  MuiItem_U8g2_Generic(U8G2 &u8g2, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0) : _u8g2(u8g2), _font(font), _x(x), _y(y) {};
+
+  u8g2_uint_t getX() const { return _x; }
+
+  u8g2_uint_t getY() const { return _y; }
+
+  // adjust cursor position
+  void setCursor( u8g2_uint_t x, u8g2_uint_t  y){ x = _x; _y = y; }
+
+  // adjust text alignment
+  void setTextAlignment(text_align_t hAlign, text_align_t vAlign){ h_align = hAlign; v_align = vAlign; }
 };
 
 /**
- * @brief this item print current page title
+ * @brief this item will print current page title at top left corner by default
  * title string will be passed here by MuiPlusPlus class renderer
  * 
  */
-class MuiItem_U8g2_PageTitle : public MuiItem_Uncontrollable {
-  U8G2 &_u8g2;
-  const uint8_t* _font;
-  u8g2_uint_t _x, _y;
+class MuiItem_U8g2_PageTitle : public MuiItem_U8g2_Generic, public MuiItem_Uncontrollable {
 public:
   /**
    * @brief Construct a new MuiItem_U8g2_PageTitle object
@@ -61,18 +85,15 @@ public:
    * @param x, y Coordinates of the top left corner to start printing
    */
   MuiItem_U8g2_PageTitle(U8G2 &u8g2, muiItemId id, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
-    : MuiItem_Uncontrollable(id, nullptr, {false, true}), _u8g2(u8g2), _font(font), _x(x), _y(y) { Serial.println("c-tor PTitle"); };
+    : MuiItem_U8g2_Generic(u8g2, font, x, y),
+      MuiItem_Uncontrollable(id, nullptr) { v_align = text_align_t::top; };
 
-  ~MuiItem_U8g2_PageTitle(){ Serial.println("d-tor PTitle"); }
+  //~MuiItem_U8g2_PageTitle(){ Serial.println("d-tor PTitle"); }
 
   void render(const MuiItem* parent) override;
 };
 
-class MuiItem_U8g2_StaticText : public MuiItem_Uncontrollable {
-  U8G2 &_u8g2;
-  const uint8_t* _font;
-  const char* _text;
-  u8g2_uint_t _x, _y;
+class MuiItem_U8g2_StaticText : public MuiItem_U8g2_Generic, public MuiItem_Uncontrollable {
 public:
   /**
    * @brief Construct a new MuiItem_U8g2_PageTitle object
@@ -83,28 +104,23 @@ public:
    * @param x, y Coordinates of the top left corner to start printing
    */
   MuiItem_U8g2_StaticText(U8G2 &u8g2, muiItemId id, const char* txt, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
-    : MuiItem_Uncontrollable(id, nullptr, {false, true}), _u8g2(u8g2), _text(txt), _font(font), _x(x), _y(y) {};
-
-  // vertical alignment relative to cursor position
-  text_align_t v_align{};
-  // horizontal alignment relative to cursor position
-  text_align_t h_align{};
+    : MuiItem_U8g2_Generic(u8g2, font, x, y),
+      MuiItem_Uncontrollable(id, txt) {};
 
   void render(const MuiItem* parent) override;
 };
 
-
-class MuiItem_U8g2_BackButton : public MuiItem_U8g2_Generic {
+/**
+ * @brief Back button
+ * this element could be focused on a page and on "action" event will generate 'back' event,
+ * it will be process by MuiPlusPlus as either switch to previous page or other action if overriden
+ * by default it will be placed at down-right corner
+ */
+class MuiItem_U8g2_BackButton : public MuiItem_U8g2_Generic, public MuiItem {
 public:
-  /**
-   * @brief Construct a new MuiItem_U8g2_PageTitle object
-   * 
-   * @param u8g2 reference to display object
-   * @param id assigned id for the item
-   * @param font use font for printing, if null, then do not switch font
-   * @param x, y Coordinates of the top left corner to start printing
-   */
-  using MuiItem_U8g2_Generic::MuiItem_U8g2_Generic;
+  MuiItem_U8g2_BackButton(U8G2 &u8g2, muiItemId id, const char* txt, const uint8_t* font = nullptr)
+    : MuiItem_U8g2_Generic(u8g2, font, u8g2.getDisplayWidth(), u8g2.getDisplayHeight()),
+      MuiItem(id, txt, {false, false}) { v_align = text_align_t::bottom; h_align = text_align_t::right; };
 
   // render method
   void render(const MuiItem* parent) override;
@@ -137,14 +153,12 @@ struct dynlist_options_t {
  * @note if 'opts.back_on_last' flag is set, then last element of a list will act 'back' event and switch to a previous page
  * 
  */
-class MuiItem_U8g2_DynamicScrollList : public MuiItem {
-  U8G2 &_u8g2;
+class MuiItem_U8g2_DynamicScrollList : public MuiItem_U8g2_Generic, public MuiItem {
   stringbyindex_cb_t _cb;
   size_cb_t _size_cb;
   index_cb_t _action;
   int _y_shift, _num_of_rows;
-  u8g2_uint_t _x, _y;
-  const uint8_t *_font1, *_font2;
+  const uint8_t *_font2;
   // current list index
   int _index{0};
 
@@ -174,7 +188,8 @@ public:
       const uint8_t* font1 = nullptr,
       const uint8_t* font2 = nullptr
   )
-    : MuiItem(id, nullptr), _u8g2(u8g2), _cb(label_cb), _size_cb(count), _action(action_cb), _y_shift(y_shift), _num_of_rows(num_of_rows), _font1(font1), _font2(font2), _x(x), _y(y) {};
+    : MuiItem_U8g2_Generic(u8g2, font1, x, y),
+      MuiItem(id, nullptr), _cb(label_cb), _size_cb(count), _action(action_cb), _y_shift(y_shift), _num_of_rows(num_of_rows), _font2(font2) {};
 
   // list options
   dynlist_options_t listopts;
@@ -185,8 +200,12 @@ public:
   void render(const MuiItem* parent) override;
 };
 
-
-class MuiItem_U8g2_CheckBox : public MuiItem_U8g2_Generic {
+/**
+ * @brief item draws a boolean checkbox
+ * and will call a callback function on action event
+ * 
+ */
+class MuiItem_U8g2_CheckBox : public MuiItem_U8g2_Generic, public MuiItem {
   // checkbox value
   bool _v;
   index_cb_t _action;
@@ -200,7 +219,8 @@ public:
    * @param x, y Coordinates of the top left corner to start printing
    */
   MuiItem_U8g2_CheckBox(U8G2 &u8g2, muiItemId id, const char* label, bool value, index_cb_t action_cb = nullptr, const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0)
-    : MuiItem_U8g2_Generic(u8g2, id, label, font, x, y), _v(value), _action(action_cb){}  // { setSelectable(false); }
+    : MuiItem_U8g2_Generic(u8g2, font, x, y),
+      MuiItem(id, label, {false, false}),_v(value), _action(action_cb){}
 
   // render method
   void render(const MuiItem* parent) override;
@@ -210,7 +230,7 @@ public:
 
 
 template <typename T>
-class MuiItem_U8g2_NumberHSlide : public MuiItem_U8g2_Generic {
+class MuiItem_U8g2_NumberHSlide : public MuiItem_U8g2_Generic, public MuiItem {
   // integer value
   //const char* _format;
   T& _v;
@@ -247,7 +267,6 @@ public:
     U8G2 &u8g2,
     muiItemId id,
     const char* label,
-    //const char* format,
     T& value,
     T min, T max, T step,
     stringify_cb_t<T> makeString = nullptr,
@@ -257,11 +276,13 @@ public:
     const uint8_t* font1 = nullptr,
     const uint8_t* font2 = nullptr,
     u8g2_uint_t x = 0, u8g2_uint_t y = 0, u8g2_uint_t offset = 20)
-    : MuiItem_U8g2_Generic(u8g2, id, label, font1, x, y), _v(value), _minv(min), _maxv(max), _step(step),
+    : MuiItem_U8g2_Generic(u8g2, font1, x, y),
+      MuiItem(id, label),
+      _v(value), _minv(min), _maxv(max), _step(step),
       _mkstring(makeString), _onSelect(onSelect), _onDeSelect(onDeSelect), _onChange(onChange),
-      _font2(font2), _offset(offset) { setSelectable(true); Serial.println("c-tor HSlide"); }
+      _font2(font2), _offset(offset) {}// { setSelectable(true); Serial.println("c-tor HSlide"); }
 
-  ~MuiItem_U8g2_NumberHSlide(){ Serial.println("d-tor HSlide"); }
+  //~MuiItem_U8g2_NumberHSlide(){ Serial.println("d-tor HSlide"); }
 
   // render method
   void render(const MuiItem* parent) override { if (_mkstring)  _rndr_formatted(parent); else  _rndr_unformatted(parent);  };
