@@ -114,6 +114,12 @@ public:
   bool focused{false};
 
   /**
+   * @brief flag is set by MuiPlusPlus object when item is selected
+   * could be used to change item behavior or visual style
+   */
+  bool selected{false};
+
+  /**
    * @brief event that could be returned on Item receiving escape event
    * could be changed for i.e. prevPage, etc...
    */
@@ -160,10 +166,6 @@ public:
   virtual void render(const MuiItem* parent){};
 };
 
-// Item pointer type declaration
-//using MuiItem_pt = std::unique_ptr<MuiItem>;
-using MuiItem_pt = std::shared_ptr<MuiItem>;
-
 class MuiItem_Uncontrollable : public MuiItem {
 public:
   MuiItem_Uncontrollable(muiItemId id, const char* name = nullptr) : MuiItem(id, name, {false, true}){}
@@ -174,6 +176,11 @@ public:
   void setConstant(bool value) override final {}
   //mui_event muiEvent(mui_event e) override final { return {}; }
 };
+
+
+// Item pointer type declaration
+//using MuiItem_pt = std::unique_ptr<MuiItem>;
+using MuiItem_pt = std::shared_ptr<MuiItem>;
 
 
 /**
@@ -233,7 +240,7 @@ class MuiPlusPlus {
    * @param id 
    * @return std::list<MuiPage>::iterator 
    */
-  std::list<MuiPage>::iterator _page_by_id(muiItemId id){ return std::find_if(pages.begin(), pages.end(), MatchPageID<MuiPage>(id)); }
+  std::list<MuiPage>::iterator _page_by_id(muiItemId id){ return std::find_if(pages.begin(), pages.end(), muipp::MatchPageID<MuiPage>(id)); }
 
   /**
    * @brief find item byt it's id
@@ -241,7 +248,7 @@ class MuiPlusPlus {
    * @param id 
    * @return std::list<MuiItem_pt>::iterator 
    */
-  std::list<MuiPage>::iterator _page_by_label(const char* label){ return std::find_if(pages.begin(), pages.end(), MatchLabel<MuiPage>(label)); }
+  std::list<MuiPage>::iterator _page_by_label(const char* label){ return std::find_if(pages.begin(), pages.end(), muipp::MatchLabel<MuiPage>(label)); }
 
   /**
    * @brief find item by it's id
@@ -249,7 +256,7 @@ class MuiPlusPlus {
    * @param id 
    * @return std::list<MuiItem_pt>::iterator 
    */
-  std::list<MuiItem_pt>::iterator _item_by_id(muiItemId id){ return std::find_if(items.begin(), items.end(), MatchID<MuiItem_pt>(id)); }
+  std::list<MuiItem_pt>::iterator _item_by_id(muiItemId id){ return std::find_if(items.begin(), items.end(), muipp::MatchID<MuiItem_pt>(id)); }
 
 
   /**

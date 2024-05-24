@@ -3,6 +3,7 @@
 
 using muiItemId = uint32_t;
 
+namespace muipp {
 
 // Unary predicate for Mui's label search matching
 template <class T>
@@ -45,3 +46,8 @@ template<typename T>
 T clamp(T value, T min, T max){
   return (value < min)? min : (value > max)? max : value;
 }
+
+
+
+
+} // end of namespace muipp
