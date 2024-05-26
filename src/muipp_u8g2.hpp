@@ -149,6 +149,30 @@ public:
   void render(const MuiItem* parent) override;
 };
 
+/**
+ * @brief Action button
+ * this element could be focused on a page and on "action" event will generate supplied mui_event
+ * with argument provided
+ */
+class MuiItem_U8g2_ActionButton : public Item_U8g2_Generic, public MuiItem {
+protected:
+  mui_event _action;
+public:
+  MuiItem_U8g2_ActionButton(
+    U8G2 &u8g2, muiItemId id,
+    mui_event onAction,                                                           // button action
+    const char* lbl,                                                              // button label
+    const uint8_t* font = nullptr, u8g2_uint_t x = 0, u8g2_uint_t y = 0,          // look and position
+    text_align_t halign = text_align_t::left, text_align_t valign = text_align_t::baseline
+    )
+    : Item_U8g2_Generic(u8g2, font, x, y, halign, valign),
+      MuiItem(id, lbl, {false, false}), _action(onAction) {};
+
+  // render method
+  void render(const MuiItem* parent) override;
+  // event handler
+  mui_event muiEvent(mui_event e) override;
+};
 
 /**
  * @brief Back button
@@ -156,16 +180,10 @@ public:
  * it will be process by MuiPlusPlus as either switch to previous page or other action if overriden
  * by default it will be placed at down-right corner
  */
-class MuiItem_U8g2_BackButton : public Item_U8g2_Generic, public MuiItem {
+class MuiItem_U8g2_BackButton : public MuiItem_U8g2_ActionButton {
 public:
-  MuiItem_U8g2_BackButton(U8G2 &u8g2, muiItemId id, const char* txt, const uint8_t* font = nullptr)
-    : Item_U8g2_Generic(u8g2, font, u8g2.getDisplayWidth(), u8g2.getDisplayHeight()),
-      MuiItem(id, txt, {false, false}) { v_align = text_align_t::bottom; h_align = text_align_t::right; };
-
-  // render method
-  void render(const MuiItem* parent) override;
-  // event handler
-  mui_event muiEvent(mui_event e) override;
+  MuiItem_U8g2_BackButton(U8G2 &u8g2, muiItemId id, const char* lbl, const uint8_t* font = nullptr)
+    : MuiItem_U8g2_ActionButton(u8g2, id, {mui_event_t::prevPage}, lbl, font, u8g2.getDisplayWidth(), u8g2.getDisplayHeight(), text_align_t::right, text_align_t::bottom) {};
 };
 
 

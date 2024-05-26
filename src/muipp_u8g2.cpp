@@ -1,6 +1,37 @@
 #include "muipp_u8g2.hpp"
 #include "Arduino.h"
 
+/*
+  display a string on multiple text lines, keeping words intact where possible, and accepting \n to force a new line
+  _Originally posted by @LenShustek in https://github.com/olikraus/u8g2/discussions/1479#discussioncomment-6242771_
+*/
+void printwords(U8G2 &u8g2, const char *msg, int xloc, int yloc /*bottom*/ ) {
+   int dspwidth = u8g2.getDisplayWidth(); // display width in pixels
+   int strwidth = 0;  // string width in pixels
+   char glyph[2]; glyph[1] = 0;
+   for (const char *ptr = msg, *lastblank = NULL; *ptr; ++ptr) {
+      while (xloc == 0 && (*msg == ' ' || *msg == '\n'))
+         if (ptr == msg++) ++ptr; // skip blanks and newlines at the left edge
+      glyph[0] = *ptr;
+      strwidth += u8g2.getStrWidth(glyph); // accumulate the pixel width
+      if (*ptr == ' ')  lastblank = ptr; // remember where the last blank was
+      else ++strwidth; // non-blanks will be separated by one additional pixel
+      if (*ptr == '\n' ||   // if we found a newline character,
+            xloc + strwidth > dspwidth) { // or if we ran past the right edge of the display
+         int starting_xloc = xloc;
+         // print to just before the last blank, or to just before where we got to
+         while (msg < (lastblank ? lastblank : ptr)) {
+            glyph[0] = *msg++;
+            xloc += u8g2.drawStr(xloc, yloc, glyph); }
+         strwidth -= xloc - starting_xloc; // account for what we printed
+         yloc += u8g2.getMaxCharHeight(); // advance to the next line
+         xloc = 0; lastblank = NULL; } }
+   while (*msg) { // print any characters left over
+      glyph[0] = *msg++;
+      xloc += u8g2.drawStr(xloc, yloc, glyph); } 
+}
+
+
 
 u8g2_uint_t Item_U8g2_Generic::getXoffset(u8g2_uint_t x, text_align_t halign, text_align_t valign, const char* text){
   // set vertical position for cursor
@@ -48,9 +79,8 @@ void MuiItem_U8g2_PageTitle::render(const MuiItem* parent){
 void MuiItem_U8g2_StaticText::render(const MuiItem* parent){
   if (_font)
     _u8g2.setFont(_font);
-
-  auto a = getXoffset(name);
-  _u8g2.drawUTF8(a, _y, name);
+  // print text with word-wrap
+  printwords(_u8g2, name, _x, _y);
 }
 
 void MuiItem_U8g2_TextCallBack::render(const MuiItem* parent){
@@ -62,7 +92,8 @@ void MuiItem_U8g2_TextCallBack::render(const MuiItem* parent){
   //Serial.printf("TextCallBack: %s\n", _cb());
 }
 
-void MuiItem_U8g2_BackButton::render(const MuiItem* parent){
+
+void MuiItem_U8g2_ActionButton::render(const MuiItem* parent){
   if (_font)
     _u8g2.setFont(_font);
 
@@ -71,14 +102,12 @@ void MuiItem_U8g2_BackButton::render(const MuiItem* parent){
   _u8g2.drawButtonUTF8(a, _y, focused ? U8G2_BTN_INV : 0, 0, 1, 1, name);
 }
 
-
-mui_event MuiItem_U8g2_BackButton::muiEvent(mui_event e){
+mui_event MuiItem_U8g2_ActionButton::muiEvent(mui_event e){
   switch(e.eid){
-    // actions 'select' and 'enter' will trigger 'back' event
+    // actions 'select' and 'enter' will trigger defined event
     case mui_event_t::select :
     case mui_event_t::enter :
-      Serial.println("BackButton");
-      return mui_event(mui_event_t::prevPage);
+      return mui_event(_action);
   }
   return {};
 }

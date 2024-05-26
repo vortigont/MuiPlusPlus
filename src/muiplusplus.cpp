@@ -257,12 +257,12 @@ mui_event MuiPlusPlus::_menu_navigation(mui_event e){
 
     // go to page by name label
     case mui_event_t::goPageByName :
-      goPageLbl(static_cast<const char*>(e.arg) );
+      goPageLbl( static_cast<const char*>(e.arg) );
       break;
 
     // go to page by id
     case mui_event_t::goPageByID :
-      goPageId( *static_cast<muiItemId*>(e.arg) );
+      goPageId( static_cast<muiItemId>(e.param) );
       break;
 
     case mui_event_t::escape :
@@ -390,9 +390,9 @@ mui_err_t MuiPlusPlus::_evt_prevItm(){
     // notify current item that it has lost focus
     (*(*currentPage).currentItem)->muiEvent(mui_event(mui_event_t::unfocus));
   }
-  // move focus on prev item
+  // move focus on prev item (if we are at first item, cycle to the last)
   if ((*currentPage).currentItem == (*currentPage).items.begin())
-    (*currentPage).currentItem == (*currentPage).items.end();
+    (*currentPage).currentItem = std::prev( (*currentPage).items.end() );
 
   while ( --(*currentPage).currentItem != (*currentPage).items.begin()){
     Serial.println("p1");
