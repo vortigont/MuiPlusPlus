@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'vortigont/FireLamp_JeeUI'
     continue-on-error: false
+    steps:
       - name: Collect build images
         id: prepare_descr
         shell: bash
