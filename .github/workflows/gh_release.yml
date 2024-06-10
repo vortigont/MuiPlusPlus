@@ -14,7 +14,7 @@ on:
 jobs:
   PublishRelease:
     runs-on: ubuntu-latest
-    if: github.repository == 'vortigont/FireLamp_JeeUI'
+    if: github.repository == 'vortigont/MuiPlusPlus'
     continue-on-error: false
     steps:
       - name: Collect build images
