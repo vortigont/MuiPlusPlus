@@ -268,6 +268,9 @@ mui_event MuiPlusPlus::_menu_navigation(mui_event e){
     case mui_event_t::escape :
       return _evt_escape();
 
+    case mui_event_t::quitMenu :
+      return mui_event(mui_event_t::quitMenu);
+
   }
 
   // no-op
