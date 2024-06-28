@@ -1,9 +1,9 @@
 {
     "name": "MuiPlusPlus",
-    "description": "OnScreen Menu UI controls library for 32 bit MCUs",
+    "description": "U8G2 based On-Screen Menu UI controls library for 32 bit MCUs",
     "frameworks": "arduino",
     "url": "https://github.com/vortigont/MuiPlusPlus",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "keywords": "OSD, menu, UI",
     "authors": [
         {
