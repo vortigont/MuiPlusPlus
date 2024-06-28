@@ -23,10 +23,13 @@ Not much documentation so far :disappointed: but I'm working on it. Lib's API co
 
 ### Demo
 
-Just a snashot of my work-in-progress on Soldering Iron menu
+Just a snapshot of my work-in-progress on Soldering Iron menu
 
 Menu navigation demo capture.
-|<img src="pics/menu_demo01.png?raw=true" alt="Menu demo" />
+|<img src="pics/menu_demo01.png?raw=true" alt="Menu Demo Volts" />
+|-
+
+|<img src="pics/menu_demo_pwr.png?raw=true" alt="Menu Demo PWR" />
 |-
 
 Reference code could be found in [ESPIron/hid.cpp](https://github.com/vortigont/ESPIron-PTS200/blob/main/ESPIron/hid.cpp)
