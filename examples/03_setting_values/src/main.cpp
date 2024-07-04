@@ -25,11 +25,10 @@
 #include "muimenu.hpp"
 
 
-// create screen driver for SH1107 64x128 monochrome oled display
+// create screen driver
 U8G2_SH1107_64X128_F_HW_I2C u8g2(U8G2_R1, SH1107_RST_PIN);
 
-// This is an instance of an object we create to control what is displayed on screen with and without menu
-// Pls, refer to muimenu.hpp and muimenu.cpp files for the classes code
+// Our object that controls screen information
 DisplayControls display;
 
 
@@ -57,7 +56,6 @@ void setup() {
   // start display operations
   display.begin();
 
-  // print a little help to serial
   Serial.println("Press any keys once to see it's actions");
   Serial.println("Long Press OK key to open menu");
 }

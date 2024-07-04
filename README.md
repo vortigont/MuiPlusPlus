@@ -38,12 +38,27 @@ Stay tuned...
 
 ### How it works
 
+#### Build
+To build core lib class you need an C++11 compiler with STL, to build a U8g2 based set of MuiItem objects you'll need a C++17 compiler for (`std::string_view`, `std::ostringstream`).
+I've tested it on ESP32 platform. Arduino core 2.x is using C++11 by default, so you'll have to add `gnu++17` build flag for it to compile successfully.
+Arduino core 3.x uses C++2x by default so should be no issues. Pls, refer to examples for `platformio.ini` configuration.
+
+
 #### Design
 
 The thing is - this lib does not build or create any menu's at all. Technically it is just a containter for generic 'MuiItem' classes - objects groupped together, where each object has some callbacks assinged to it. Those objects are iterated and callbacks are called on it. Whatever the function of those objects are - solely defined in a user code. It could draw something on a screen, or change it's state or issue an event, or maybe just do nothing at all.
 
 There is a main container object class `MuiPlusPlus`, it maintains and accounts all `MuiItem` objects (or any objects that are derived from `MuiItem`).
 `MuiItem`'s could be collected into `Pages` (or better term here would be `chains`), each `MuiItem` object could belong to multiple pages, or does not belong to anyone. Think about it as a graph where nodes are `MuiItem`s and and "Pages" (or chains) is just a list of interconnected nodes. The "page" is node itself, it just contains a list of all other nodes it connects to.
+
+All `MuiItem` objects are maintained within the container as a list of shared pointers internally. There are two reasons for this:
+
+  - those objects are all derived classes from a base `MuiItem` class, so it has to use an indirection via pointer to base class
+  - it allows to dynamically add/remove menu objects on-demand. I use an approach to create/destruct it even when switching between menu sections to simplify my classes and keep it do a minimal set of functions
+
+When you assign `MuiItem` object to container it's accepted as either a shared pointer, so the ownership is maintaned based on number of references to the object. Or by a bare pointer, in that case  `MuiPlusPlus` steals the ownership of the pointed object and converts it to shared pointer with a single reference to it.
+Anyway all objects are destructed via a shared pointer's destructor upon destructing container `MuiPlusPlus` object.
+
 
 
 #### Interaction
