@@ -167,11 +167,11 @@ mui_err_t MuiPlusPlus::goItmId(muiItemId item_id){
   if ((*it)->getSelectable()){
     (*currentPage).itm_selected = true;
     (*(*currentPage).currentItem)->selected = true;
-    // update new item's focus flag
-    (*it)->focused = true;
-    // notify item that it received focus
-    (*it)->muiEvent(mui_event(mui_event_t::focus));
   }
+  // update item's focus flag, we focus on it anyway, event if it' not selectable
+  (*it)->focused = true;
+  // notify item that it received focus
+  (*it)->muiEvent(mui_event(mui_event_t::focus));
   return mui_err_t::ok;
 }
 

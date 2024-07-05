@@ -153,6 +153,8 @@ public:
  * @brief Action button
  * this element could be focused on a page and on "action" event will generate supplied mui_event
  * with argument provided
+ * @note item is focusable
+ * @note item is NOT selectable
  */
 class MuiItem_U8g2_ActionButton : public Item_U8g2_Generic, public MuiItem {
 protected:
@@ -170,6 +172,7 @@ public:
 
   // render method
   void render(const MuiItem* parent) override;
+
   // event handler
   mui_event muiEvent(mui_event e) override;
 };
