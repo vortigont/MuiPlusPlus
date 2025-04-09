@@ -7,11 +7,11 @@ namespace muipp {
 
 // Unary predicate for Mui's label search matching
 template <class T>
-class MatchLabel : public std::unary_function<T, bool>{
+class MatchLabel {
   std::string_view _lookup;
 public:
   explicit MatchLabel(const char* label) : _lookup(label) {}
-  bool operator() (const T& item ){
+  constexpr bool operator() (const T& item ){
       // T is MuiPage
       return _lookup.compare(item.getName()) == 0;
   }
@@ -19,11 +19,11 @@ public:
 
 // Unary predicate for Mui's ID search matching
 template <class T>
-class MatchID : public std::unary_function<T, bool>{
+class MatchID {
   muiItemId _id;
 public:
   explicit MatchID(muiItemId id) : _id(id) {}
-  bool operator() (const T& item ){
+  constexpr bool operator() (const T& item ){
       // T is MuiItem_pt
       return item->id == _id;
   }
@@ -31,11 +31,11 @@ public:
 
 // Unary predicate for Mui's ID search matching
 template <class T>
-class MatchPageID : public std::unary_function<T, bool>{
+class MatchPageID {
   muiItemId _id;
 public:
   explicit MatchPageID(muiItemId id) : _id(id) {}
-  bool operator() (const T& item ){
+  constexpr bool operator() (const T& item ){
       // T is MuiPage
       return item.id == _id;
   }
