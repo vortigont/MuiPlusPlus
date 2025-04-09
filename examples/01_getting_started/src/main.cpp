@@ -190,15 +190,16 @@ void setup_buttons(){
     }
   );
 
-  // we'll set a lambda callback for our 'increment' button long press
+  // we'll set a lambda callback for our 'increment' button short press
   b_incr.onClick(
     [](){
       if (inMenu)
-        // when we are in Menu, we will sent "moveDown" event to MuiPP,
-        // so it will handle it as cursor control
+        // when we are in Menu, we will sent "moveDown" event to MuiPP, so it will handle it as cursor control
+        // you want to ask "why 'increment' button should send 'down' event?" - Good question!
+        // consider 'increment' as 'next' and your cursor is going 'down' through a list of menu items, from first item to last
         muiplus.muiEvent( mui_event(mui_event_t::moveDown) );
       else {
-        // otherwise, when not in menu, we simply set to refresh screen with OK button
+        // otherwise, when not in menu, we simply set to refresh screen with 'incr' message
         stub_text = incr;
       }
       refreshScreen = true;
@@ -206,7 +207,7 @@ void setup_buttons(){
     }
   );
 
-  // we'll set a lambda callback for our 'increment' button long press
+  // we'll set a lambda callback for our 'decrement' button short press
   b_decr.onClick(
     [](){
       if (inMenu)
@@ -214,7 +215,7 @@ void setup_buttons(){
         // so it will handle it as cursor control
         muiplus.muiEvent( mui_event(mui_event_t::moveUp) );
       else {
-        // otherwise, when not in menu, we simply set to refresh screen with OK button
+        // otherwise, when not in menu, we simply set to refresh screen with 'decrement' text
         stub_text = decr;
         refreshScreen = true;
       }
@@ -291,7 +292,7 @@ void setup_menu(){
   // create a new Action Button object
   auto quitbtn = new MuiItem_U8g2_ActionButton(
     u8g2,                       // u8g2 object
-    quit_idx,                     // unique ID for the Item
+    quit_idx,                   // unique ID for the Item
     mui_event_t::quitMenu,      // which event to generate on button action
     "Quit menu",                // button label
     SMALL_TEXT_FONT,            // text font
@@ -320,8 +321,8 @@ void setup_menu(){
   // now we need to start our menu from the page that we just created
   muiplus.menuStart(root_page);
 
-  // remember to ALWAYS specify start page for menu, otherwise it will point to nowhere, it won't pick
-  // any random page for you to start with
+  // remember to ALWAYS specify start page for menu, otherwise it will point to nowhere,
+  // it won't pick any random page for you to start with
 
 }
 
