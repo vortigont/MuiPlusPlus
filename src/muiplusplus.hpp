@@ -102,6 +102,13 @@ protected:
   const char* name;
   // Item properties struct
   item_opts opt;
+  /**
+   * @brief refresh flag,
+   * to beset internaly/externaly when Item's state changeg and it might be rendered
+   * could be used for selective rendering
+   * 
+   */
+  bool refresh{false};
 
 public:
   // numeric identificator of item
@@ -127,11 +134,11 @@ public:
 
 
   MuiItem(muiItemId id, const char* name = nullptr, item_opts options = item_opts()) : id(id), name(name), opt(options) {};
-  virtual ~MuiItem(){ Serial.printf("MuiItem d-tor, id:%u\n", id); };
+  virtual ~MuiItem(){ /* Serial.printf("MuiItem d-tor, id:%u\n", id); */ };
 
   const char* getName() const { return name; };
 
-  const char* setName(const char* newname) { name = newname; return name; };
+  const char* setName(const char* newname) { name = newname; refresh = true; return name; };
 
   /**
    * @brief returns true if Item can be selected on a page
@@ -161,9 +168,20 @@ public:
   /**
    * @brief render item
    * 
-   * @param page 
+   * @param parent - a pointer to the item's parent object
+   * @param r - rendering engine to use, if any
    */
-  virtual void render(const MuiItem* parent){};
+  virtual void render(const MuiItem* parent, void* r = nullptr){ refresh = false; };
+
+  /**
+   * @brief Item refresh request
+   * poll item if it has it's internal state changed and needs to render a new content
+   * could be used for partial screen refreshes for dynamic items (i.e. gauges, etc...)
+   * 
+   * @return true - if item wants to draw a new content
+   * @return false - if nothing to refresh
+   */
+  virtual bool refresh_req() const { return refresh; }
 };
 
 class MuiItem_Uncontrollable : public MuiItem {
@@ -179,7 +197,6 @@ public:
 
 
 // Item pointer type declaration
-//using MuiItem_pt = std::unique_ptr<MuiItem>;
 using MuiItem_pt = std::shared_ptr<MuiItem>;
 
 
@@ -355,11 +372,26 @@ public:
   // before calling render on each items
   //void setPreExec();
 
-  // render menu on screen
-  void render();
+  /**
+   * @brief render menu on screen
+   * runs render call on All items on the active page
+   * @param r - pointer to a rendering engine to pass to each item
+   */
+  void render(void* r = nullptr);
 
-  // after calling render items
-  //void setPostExec();
+  /**
+   * @brief refresh menu
+   * checks all items on page if each needs to refresh itself, runs render call on those
+   * needed refresh. Could be used tp speedup partial screen refresh (if supported)
+   * @param r 
+   * @return returns true if any of the items was refreshed
+   */
+  bool refresh(void* r = nullptr);
+
+  /** 
+   * purge all pages and items
+   */
+  void clear();
 
 // other private methods
 private:

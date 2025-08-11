@@ -41,16 +41,16 @@ MuiPlusPlus::~MuiPlusPlus(){
 */
 muiItemId MuiPlusPlus::makePage(const char* name, muiItemId parent, item_opts options){
   ++_pages_index;
-  Serial.printf("makePage %u %s, parent %u\n", _pages_index, name, parent);
+  //Serial.printf("makePage %u %s, parent %u\n", _pages_index, name, parent);
   pages.emplace_back(_pages_index, name, parent, options);
   return _pages_index;
 }
 
 mui_err_t MuiPlusPlus::addMuippItem(MuiItem_pt item, muiItemId page_id){
-  Serial.printf("Adding item %u, page %u\n", item->id, page_id);
+  //Serial.printf("Adding item %u, page %u\n", item->id, page_id);
   auto i = std::find_if(items.cbegin(), items.cend(), muipp::MatchID<MuiItem_pt>(item->id));
   if ( i != items.cend() ){
-    Serial.printf("item:%u already exist!\n", item->id);
+    //Serial.printf("item:%u already exist!\n", item->id);
     return mui_err_t::id_exist;
   }
 
@@ -79,7 +79,7 @@ mui_err_t MuiPlusPlus::addItemToPage(muiItemId item_id, muiItemId page_id){
   // check if such page exist
   auto p = _page_by_id(page_id);
   if ( p == pages.end() ){
-    Serial.printf("page:%u not found\n", page_id);
+    //Serial.printf("page:%u not found\n", page_id);
     return mui_err_t::id_err;
   }
 
@@ -90,7 +90,7 @@ mui_err_t MuiPlusPlus::addItemToPage(muiItemId item_id, muiItemId page_id){
   }
 //
   (*p).items.emplace_back((*i));
-  Serial.printf("bound item:%u to page:%u\n", item_id, page_id);
+  //Serial.printf("bound item:%u to page:%u\n", item_id, page_id);
   return mui_err_t::ok;
 }
 
@@ -104,7 +104,7 @@ void MuiPlusPlus::menuStart(muiItemId page, muiItemId item){
 
 
 mui_err_t MuiPlusPlus::goPageId(muiItemId page_id, muiItemId item_id){
-  Serial.printf("goPageId:%u,%u\n", page_id, item_id);
+  //Serial.printf("goPageId:%u,%u\n", page_id, item_id);
   auto p = _page_by_id(page_id);
   // check if no such page or page has no any items at all?
   if ( p == pages.end() || !(*p).items.size() ){
@@ -176,7 +176,7 @@ mui_err_t MuiPlusPlus::goItmId(muiItemId item_id){
 }
 
 
-void MuiPlusPlus::render(){
+void MuiPlusPlus::render(void* r){
   // won't run with no pages or items
   if (!pages.size() || !items.size())
     return;
@@ -187,13 +187,32 @@ void MuiPlusPlus::render(){
   for (auto itm : (*currentPage).items ){
     //Serial.printf("Render item:%u\n", id);
     // render selected item passing it a reference to current page
-    (*itm).render(&(*currentPage));
+    (*itm).render(&(*currentPage), r);
   }
+}
 
+bool MuiPlusPlus::refresh(void* r){
+  bool rr{false};
+  // won't run with no pages or items
+  if (!pages.size() || !items.size())
+    return rr;
+
+  //Serial.printf("Render %u items on page:%u\n", (*currentPage).items.size(), (*currentPage).id);
+
+  // render each item on a page if needed
+  for (auto itm : (*currentPage).items ){
+    bool item_refresh = (*itm).refresh_req();
+    if (item_refresh){
+      // render selected item passing it a reference to current page
+      (*itm).render(&(*currentPage), r);
+      rr = true;
+    }
+  }
+  return rr;
 }
 
 mui_event MuiPlusPlus::muiEvent(mui_event e){
-  Serial.printf("MPP event:%u\n", static_cast<uint32_t>(e.eid));
+  //Serial.printf("MPP event:%u\n", static_cast<uint32_t>(e.eid));
   _evt_recursion = 0;
   if (e.eid == mui_event_t::noop) return e;
 
@@ -221,7 +240,7 @@ mui_event MuiPlusPlus::muiEvent(mui_event e){
 mui_event MuiPlusPlus::_menu_navigation(mui_event e){
   // do not work on empty pages (for now), check recursion level
   if ( (*currentPage).items.size() == 0 || (++_evt_recursion > MAX_NESTED_EVENTS) ) return {};
-  Serial.printf("_menu_navigation evt:%u, recursion:%u\n", static_cast<uint32_t>(e.eid), _evt_recursion);
+  //Serial.printf("_menu_navigation evt:%u, recursion:%u\n", static_cast<uint32_t>(e.eid), _evt_recursion);
 
   switch(e.eid){
     // cursor actions
@@ -278,7 +297,7 @@ mui_event MuiPlusPlus::_menu_navigation(mui_event e){
 }
 
 void MuiPlusPlus::_feedback_event(mui_event e){
-  Serial.printf("_feedback_event:%u\n", static_cast<uint32_t>(e.eid));
+  //Serial.printf("_feedback_event:%u\n", static_cast<uint32_t>(e.eid));
   switch(e.eid){
     case mui_event_t::prevPage :
       _prev_page();
@@ -302,7 +321,7 @@ mui_event MuiPlusPlus::_prev_page(){
 }
 
 mui_err_t MuiPlusPlus::pageAutoSelect(muiItemId page_id, muiItemId item_id){
-  Serial.printf("pageAutoSelect:%u,%u\n", page_id, item_id);
+  //Serial.printf("pageAutoSelect:%u,%u\n", page_id, item_id);
   auto p = _page_by_id(page_id);
   if ( p == pages.cend() ){
     return mui_err_t::id_err;
@@ -347,10 +366,10 @@ uint32_t MuiPlusPlus::nextIndex(){
 }
 
 mui_err_t MuiPlusPlus::_evt_nextItm(){
-  Serial.println("_evt_nextItm");
+  //Serial.println("_evt_nextItm");
   if ( !(*currentPage).items.size() || (*currentPage).currentItem == (*currentPage).items.end() ){
     // invalid iterator, nothing on page we can work on
-    Serial.println("no valid items on a page!");
+    //Serial.println("no valid items on a page!");
     return mui_err_t::id_err;
   }
 
@@ -381,10 +400,10 @@ mui_err_t MuiPlusPlus::_evt_nextItm(){
 }
 
 mui_err_t MuiPlusPlus::_evt_prevItm(){
-  Serial.println("_evt_prevItm");
+  //Serial.println("_evt_prevItm");
   if ( !(*currentPage).items.size() || (*currentPage).currentItem == (*currentPage).items.end() ){
     // invalid iterator, nothing on page we can work on
-    Serial.println("no valid items on a page!");
+    //Serial.println("no valid items on a page!");
     return mui_err_t::id_err;
   }
 
@@ -398,7 +417,6 @@ mui_err_t MuiPlusPlus::_evt_prevItm(){
     (*currentPage).currentItem = std::prev( (*currentPage).items.end() );
 
   while ( --(*currentPage).currentItem != (*currentPage).items.begin()){
-    Serial.println("p1");
     // stop on first non-const item
     if ( !(*(*currentPage).currentItem)->getConstant() ) break;
   }
@@ -407,13 +425,11 @@ mui_err_t MuiPlusPlus::_evt_prevItm(){
 //    Serial.println("p1");
 //    --(*currentPage).currentItem;
 //  } while( (*currentPage).currentItem != (*currentPage).items.begin() || (*(*currentPage).currentItem)->getConstant() );
-    Serial.println("p2");
 
   // check if last iterator is reached head of list and still we have constant element that we can't focus on
   if ((*currentPage).currentItem == (*currentPage).items.begin() && (*(*currentPage).currentItem)->getConstant())
     return _any_focusable_item_on_a_page_e();
   else {
-    Serial.println("p4");
     // update focus flag
     (*(*currentPage).currentItem)->focused = true;
     // notify item that it received focus
@@ -423,7 +439,7 @@ mui_err_t MuiPlusPlus::_evt_prevItm(){
 }
 
 mui_err_t MuiPlusPlus::_any_focusable_item_on_a_page_b(){
-  Serial.println("_any_focusable_item_on_a_page_b");
+  //Serial.println("_any_focusable_item_on_a_page_b");
   for (auto it = (*currentPage).items.begin(); it != (*currentPage).items.end(); ++it){
     if ( (*it)->getConstant() )
       continue;
@@ -439,7 +455,7 @@ mui_err_t MuiPlusPlus::_any_focusable_item_on_a_page_b(){
 }
 
 mui_err_t MuiPlusPlus::_any_focusable_item_on_a_page_e(){
-  Serial.println("_any_focusable_item_on_a_page_e");
+  //Serial.println("_any_focusable_item_on_a_page_e");
   if ( !(*currentPage).items.size())   return mui_err_t::id_err;
   for (auto it = std::prev( (*currentPage).items.end() ); it != (*currentPage).items.begin(); --it){
     if ( (*it)->getConstant() )
@@ -457,3 +473,9 @@ mui_err_t MuiPlusPlus::_any_focusable_item_on_a_page_e(){
   return mui_err_t::id_err;
 }
 
+void MuiPlusPlus::clear(){
+  pages.clear();
+  items.clear();
+  _items_index = _pages_index = 0;
+  currentPage = pages.end();
+}

@@ -1,5 +1,8 @@
+#if __has_include("U8g2lib.h")
 #include "muipp_u8g2.hpp"
 #include "Arduino.h"
+
+using namespace muipp;
 
 /*
   display a string on multiple text lines, keeping words intact where possible, and accepting \n to force a new line
@@ -68,7 +71,7 @@ u8g2_uint_t Item_U8g2_Generic::getXoffset(u8g2_uint_t x, text_align_t halign, te
 }
 
 
-void MuiItem_U8g2_PageTitle::render(const MuiItem* parent){
+void MuiItem_U8g2_PageTitle::render(const MuiItem* parent, void* r){
   if (_font)
     _u8g2.setFont(_font);
 
@@ -76,14 +79,14 @@ void MuiItem_U8g2_PageTitle::render(const MuiItem* parent){
   _u8g2.drawUTF8(a, _y, parent->getName());
 }
 
-void MuiItem_U8g2_StaticText::render(const MuiItem* parent){
+void MuiItem_U8g2_StaticText::render(const MuiItem* parent, void* r){
   if (_font)
     _u8g2.setFont(_font);
   // print text with word-wrap
   printwords(_u8g2, name, _x, _y);
 }
 
-void MuiItem_U8g2_TextCallBack::render(const MuiItem* parent){
+void MuiItem_U8g2_TextCallBack::render(const MuiItem* parent, void* r){
   if (_font)
     _u8g2.setFont(_font);
 
@@ -93,7 +96,7 @@ void MuiItem_U8g2_TextCallBack::render(const MuiItem* parent){
 }
 
 
-void MuiItem_U8g2_ActionButton::render(const MuiItem* parent){
+void MuiItem_U8g2_ActionButton::render(const MuiItem* parent, void* r){
   if (_font)
     _u8g2.setFont(_font);
 
@@ -118,7 +121,7 @@ mui_event MuiItem_U8g2_ActionButton::muiEvent(mui_event e){
 //    for (; it!=end; ++it) { /*...*/ }
 //}
 
-void MuiItem_U8g2_DynamicScrollList::render(const MuiItem* parent){
+void MuiItem_U8g2_DynamicScrollList::render(const MuiItem* parent, void* r){
   Serial.printf("DynScrl print lst of %u items\n", _size_cb());
 
   _u8g2.setCursor(_x, _y);
@@ -191,7 +194,7 @@ mui_event MuiItem_U8g2_DynamicScrollList::muiEvent(mui_event e){
 //  ***
 //  MuiItem_U8g2_CheckBox
 
-void MuiItem_U8g2_CheckBox::render(const MuiItem* parent){
+void MuiItem_U8g2_CheckBox::render(const MuiItem* parent, void* r){
   _u8g2.setCursor(_x, _y);
   if (_font)
     _u8g2.setFont(_font);
@@ -235,7 +238,7 @@ mui_event MuiItem_U8g2_CheckBox::muiEvent(mui_event e){
 //  ***
 //  MuiItem_U8g2_ValuesList
 
-void MuiItem_U8g2_ValuesList::render(const MuiItem* parent){
+void MuiItem_U8g2_ValuesList::render(const MuiItem* parent, void* r){
   if (_font)
     _u8g2.setFont(_font);
 
@@ -285,3 +288,5 @@ mui_event MuiItem_U8g2_ValuesList::muiEvent(mui_event e){
   // by default, return noop
   return {};
 }
+
+#endif  //  __has_include("U8g2lib.h")
