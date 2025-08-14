@@ -11,6 +11,7 @@
 struct AGFX_text_t {
   uint16_t color, bgcolor;
   const uint8_t* font{nullptr};
+  uint8_t font_size;
   muipp::text_align_t halign{muipp::text_align_t::left}, valign{muipp::text_align_t::baseline};
   bool transp_bg{true};
 };
